@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Questions & ideas
+    url: https://github.com/m-ahmed-elbeskeri/puffin-finetune-studio/discussions
+    about: Ask questions, share what you built, or discuss ideas before filing an issue.
+  - name: 🔒 Report a security vulnerability
+    url: https://github.com/m-ahmed-elbeskeri/puffin-finetune-studio/security/advisories/new
+    about: Please report vulnerabilities privately, not as a public issue.
