@@ -121,6 +121,33 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/llmops", "copilot"]
+# Never ship the frontend's dev/build artifacts (huge, generated). The wheel
+# carries the Python library + copilot backend + launcher + frontend source;
+# `finetune-copilot` installs npm deps on first run (or use --prod after build).
+exclude = [
+  "copilot/frontend/node_modules",
+  "copilot/frontend/.next",
+  "copilot/frontend/out",
+  "**/*.tsbuildinfo",
+  "**/__pycache__",
+]
+
+[tool.hatch.build.targets.sdist]
+# Keep the sdist lean and, crucially, stop the build from walking node_modules.
+exclude = [
+  "copilot/frontend/node_modules",
+  "copilot/frontend/.next",
+  "copilot/frontend/out",
+  ".venv",
+  "mlruns",
+  "mlflow.db",
+  "artifacts",
+  ".benchmarks",
+  ".playwright-mcp",
+  "**/*.tsbuildinfo",
+  "**/__pycache__",
+  "**/*.pyc",
+]
 
 [tool.ruff]
 line-length = 100
