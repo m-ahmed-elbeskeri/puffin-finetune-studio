@@ -19,9 +19,7 @@ def test_full_eval_suite_with_echo(tmp_path, repo_root, monkeypatch):
     fixtures = repo_root / "tests" / "fixtures" / "eval"
     cfg_src = yaml.safe_load((fixtures / "eval_config.yaml").read_text(encoding="utf-8"))
     # Resolve the fixture dataset paths to absolute (we chdir'd to tmp_path).
-    cfg_src["datasets"] = {
-        k: str(fixtures / Path(v).name) for k, v in cfg_src["datasets"].items()
-    }
+    cfg_src["datasets"] = {k: str(fixtures / Path(v).name) for k, v in cfg_src["datasets"].items()}
     cfg_src["output"] = {"metrics_path": str(tmp_path / "metrics.json")}
     cfg_path = tmp_path / "eval.yaml"
     cfg_path.write_text(yaml.safe_dump(cfg_src), encoding="utf-8")
