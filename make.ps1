@@ -32,6 +32,7 @@ switch ($Target) {
         Write-Host "  install-serve    Install with [serve] extras"
         Write-Host "  install-all      Install with [all,dev] extras"
         Write-Host "  lint             Ruff + mypy"
+        Write-Host "  typecheck        mypy on src/llmops"
         Write-Host "  format           Auto-format + auto-fix"
         Write-Host "  test             Run pytest with coverage"
         Write-Host "  test-fast        Run only fast unit tests"
@@ -60,6 +61,9 @@ switch ($Target) {
         Invoke-Step "ruff format" { ruff format --check src tests }
         Write-Host "==> mypy (warnings only)" -ForegroundColor Cyan
         mypy src/llmops
+    }
+    "typecheck" {
+        Invoke-Step "mypy" { mypy src/llmops }
     }
     "format" {
         Invoke-Step "ruff fix"    { ruff check --fix src tests }

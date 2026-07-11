@@ -2,7 +2,7 @@ PYTHON ?= python
 PROFILE ?= local
 ENV ?= dev
 
-.PHONY: help setup install install-train install-serve install-eval install-all install-copilot lint format test test-fast cov data-validate data-build train-smoke train evaluate gate serve docker-build-train docker-build-serve docker-build-eval docker-build clean
+.PHONY: help setup install install-train install-serve install-eval install-all install-copilot lint typecheck format test test-fast cov data-validate data-build train-smoke train evaluate gate serve docker-build-train docker-build-serve docker-build-eval docker-build clean
 
 help:
 	@echo "puffin-finetune-studio — common targets"
@@ -17,6 +17,7 @@ help:
 	@echo ""
 	@echo "Quality:"
 	@echo "  lint            Run ruff check + ruff format check + mypy"
+	@echo "  typecheck       Run mypy on src/llmops"
 	@echo "  format          Auto-format and auto-fix lints"
 	@echo "  test            Run pytest with coverage"
 	@echo "  test-fast       Run only fast unit tests (exclude integration/gpu/network/slow)"
@@ -64,6 +65,9 @@ lint:
 	ruff check src tests
 	ruff format --check src tests
 	mypy src/llmops || true
+
+typecheck:
+	mypy src/llmops
 
 format:
 	ruff check --fix src tests
