@@ -1,0 +1,2 @@
+{"id": "regression-001", "system": "You are a helpful assistant.", "prompt": "What is 2 + 2?", "criteria": {"must_contain": ["4"], "forbid_refusal": true}}
+{"id": "regression-002", "system": "You are a helpful assistant.", "prompt": "Reply with the word acknowledged.", "criteria": {"must_contain": ["acknowledged"], "forbid_refusal": true}}

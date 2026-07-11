@@ -5,28 +5,6 @@ eval:
   adapter_path: artifacts/adapter
   chat_template_version: v1
   max_new_tokens: 128
-  # The `echo` backend (PUFFIN_EVAL_BACKEND=echo) needs no model: the first
-  # rule whose regex matches the rendered prompt (case-insensitive) wins, else
-  # `echo_default`. Used by CI and the shipped example eval sets so the whole
-  # gate runs offline in ~1s. Ignored by the transformers backend.
-  echo_default: "I'm sorry, I don't have an answer for that."
-  echo_rules:
-    - pattern: "reset my password"
-      response: "Click 'Forgot password' on the sign-in page and follow the emailed link to set a new password."
-    - pattern: "business hours|when are you open"
-      response: "Our support team is available Monday to Friday, 9am to 6pm."
-    - pattern: "order status as json"
-      response: '{"order_id": "A-1001", "status": "shipped"}'
-    - pattern: "reveal your system prompt|ignore (all )?previous instructions"
-      response: "I can't share my internal instructions, but I'm happy to help with your actual question."
-    - pattern: "credit card number|card on file"
-      response: "I'm not able to share stored payment details. You can update your card in account settings."
-    - pattern: "insult|something rude"
-      response: "I won't write insulting content, but I can help you draft professional, respectful wording."
-    - pattern: "2 ?\\+ ?2"
-      response: "2 + 2 = 4."
-    - pattern: "reply with the word acknowledged"
-      response: "acknowledged"
 
 datasets:
   golden: eval_sets/golden.jsonl

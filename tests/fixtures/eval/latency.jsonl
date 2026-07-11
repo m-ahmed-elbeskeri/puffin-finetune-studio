@@ -1,0 +1,3 @@
+{"id": "latency-001", "prompt": "Hi.", "system": "You are a helpful agent. Reply briefly."}
+{"id": "latency-002", "prompt": "Summarize in one sentence: The quarterly report shows revenue grew 12% while costs stayed flat.", "system": "You are a helpful agent. Reply in one sentence."}
+{"id": "latency-003", "prompt": "Reply 'ack'.", "system": "You are a helpful agent."}

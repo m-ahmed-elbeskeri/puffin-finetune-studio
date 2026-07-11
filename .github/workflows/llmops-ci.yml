@@ -98,18 +98,16 @@ jobs:
       - uses: astral-sh/setup-uv@v3
       - run: uv venv --python 3.11
       - run: uv pip install -e ".[data,eval]"
+      # The shipped eval_sets/ are empty by design; use the fixture config +
+      # example sets under tests/fixtures/eval/ (echo backend, runs offline).
       - name: Run eval suite (echo backend)
-        env:
-          PUFFIN_EVAL_BACKEND: echo
         run: |
-          uv run python -m llmops.evaluation.task_eval       --config configs/eval.yaml
-          uv run python -m llmops.evaluation.safety_eval     --config configs/eval.yaml
-          uv run python -m llmops.evaluation.regression_eval --config configs/eval.yaml
-          uv run python -m llmops.evaluation.latency_eval    --config configs/eval.yaml
+          uv run python -m llmops.evaluation.task_eval       --config tests/fixtures/eval/eval_config.yaml
+          uv run python -m llmops.evaluation.safety_eval     --config tests/fixtures/eval/eval_config.yaml
+          uv run python -m llmops.evaluation.regression_eval --config tests/fixtures/eval/eval_config.yaml
+          uv run python -m llmops.evaluation.latency_eval    --config tests/fixtures/eval/eval_config.yaml
       - name: Apply gate
-        env:
-          PUFFIN_EVAL_BACKEND: echo
-        run: uv run python -m llmops.evaluation.gate --config configs/eval.yaml --metrics artifacts/eval/metrics.json
+        run: uv run python -m llmops.evaluation.gate --config tests/fixtures/eval/eval_config.yaml --metrics artifacts/eval/metrics.json
       - uses: actions/upload-artifact@v4
         with:
           name: eval-metrics-${{ github.run_id }}

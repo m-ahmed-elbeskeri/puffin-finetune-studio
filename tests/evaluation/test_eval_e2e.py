@@ -9,14 +9,18 @@ import yaml
 
 
 def test_full_eval_suite_with_echo(tmp_path, repo_root, monkeypatch):
-    """Run every eval module against the shipped golden/safety/regression/latency sets."""
+    """Run every eval module against the example fixture sets via the echo backend.
+
+    The shipped eval_sets/ ship empty by design (a fresh project fills them in),
+    so the example cases + echo rules live under tests/fixtures/eval/.
+    """
     monkeypatch.chdir(tmp_path)
 
-    # Materialize a copy of the eval config that points at the shipped JSONL files.
-    cfg_src = yaml.safe_load((repo_root / "configs" / "eval.yaml").read_text(encoding="utf-8"))
-    cfg_src["eval"]["backend"] = "echo"
+    fixtures = repo_root / "tests" / "fixtures" / "eval"
+    cfg_src = yaml.safe_load((fixtures / "eval_config.yaml").read_text(encoding="utf-8"))
+    # Resolve the fixture dataset paths to absolute (we chdir'd to tmp_path).
     cfg_src["datasets"] = {
-        k: str(repo_root / "eval_sets" / Path(v).name) for k, v in cfg_src["datasets"].items()
+        k: str(fixtures / Path(v).name) for k, v in cfg_src["datasets"].items()
     }
     cfg_src["output"] = {"metrics_path": str(tmp_path / "metrics.json")}
     cfg_path = tmp_path / "eval.yaml"
