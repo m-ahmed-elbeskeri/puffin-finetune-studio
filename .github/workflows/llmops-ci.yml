@@ -13,6 +13,12 @@ concurrency:
 permissions:
   contents: read
 
+# Install into a project .venv and let `uv run` use it as-is (no re-sync, which
+# would otherwise prune the extras we install). Avoids `uv pip install --system`,
+# which fails on the runner's externally-managed system Python (PEP 668).
+env:
+  UV_NO_SYNC: "1"
+
 jobs:
   lint-test:
     name: lint + unit tests
@@ -28,11 +34,11 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Set up Python
-        run: uv python install 3.11
+      - name: Create venv (Python 3.11)
+        run: uv venv --python 3.11
 
       - name: Install package + dev extras
-        run: uv pip install --system -e ".[data,eval,dev]"
+        run: uv pip install -e ".[data,eval,dev]"
 
       - name: Ruff check
         run: uv run ruff check src tests
@@ -63,8 +69,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
-      - run: uv python install 3.11
-      - run: uv pip install --system -e ".[data,eval]"
+      - run: uv venv --python 3.11
+      - run: uv pip install -e ".[data,eval]"
       - run: uv run python -m llmops.data.ingest --config configs/data.yaml
       - run: uv run python -m llmops.data.validate --config configs/data.yaml
       - run: uv run python -m llmops.data.redact_pii --config configs/data.yaml
@@ -75,6 +81,7 @@ jobs:
         with:
           name: dataset-card-${{ github.run_id }}
           path: dataset_cards/generated.md
+          if-no-files-found: ignore
 
   eval-smoke:
     name: eval smoke (echo backend)
@@ -83,8 +90,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
-      - run: uv python install 3.11
-      - run: uv pip install --system -e ".[data,eval]"
+      - run: uv venv --python 3.11
+      - run: uv pip install -e ".[data,eval]"
       - name: Run eval suite (echo backend)
         env:
           PUFFIN_EVAL_BACKEND: echo
@@ -101,6 +108,7 @@ jobs:
         with:
           name: eval-metrics-${{ github.run_id }}
           path: artifacts/eval/
+          if-no-files-found: ignore
 
   docker-build:
     name: docker build (dry verify)

@@ -18,10 +18,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 COPY pyproject.toml README.md LICENSE ./
+# Copy the package before installing: the editable/hatchling build needs
+# src/llmops to exist to resolve the package.
+COPY src ./src
 RUN pip install --upgrade pip \
     && pip install -e ".[serve]"
 
-COPY src ./src
 COPY configs ./configs
 
 RUN python -c "from llmops.serving.app import create_app; print('ok')"
