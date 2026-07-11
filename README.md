@@ -176,7 +176,7 @@ codebase a friendly face and an AI chat with tool-use access to it.
 - **Every page has AI actions:** audit data, run the pipeline, run evals + gate, push/promote,
   diagnose drift. `Ctrl/Cmd+K` opens a page-aware command bar.
 
-<div align="center"><em>Screenshots and a short demo GIF live in <a href="copilot/README.md">copilot/README.md</a>.</em></div>
+<div align="center"><em>Full page list, provider matrix, and tool catalogue in <a href="copilot/README.md">copilot/README.md</a>.</em></div>
 
 ---
 
@@ -348,6 +348,6 @@ and [MLflow](https://github.com/mlflow/mlflow).
 
 <div align="center">
 
-If puffin saves you a weekend, consider leaving a ⭐ — it genuinely helps.
+If puffin saves you a weekend, consider leaving a ⭐. It genuinely helps.
 
 </div>

@@ -46,9 +46,9 @@ switch ($Target) {
         Write-Host "  clean            Remove caches and artifacts"
     }
     "setup" {
-        Invoke-Step "Creating venv and installing dev extras" {
+        Invoke-Step "Creating venv and installing dev + train extras" {
             uv venv .venv
-            uv pip install -e ".[data,eval,dev]"
+            uv pip install -e ".[data,train,eval,dev]"
         }
     }
     "install"       { Invoke-Step "Install (no extras)"        { & $Python -m pip install -e . } }

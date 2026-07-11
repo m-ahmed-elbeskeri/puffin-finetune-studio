@@ -44,7 +44,7 @@ help:
 
 setup:
 	uv venv .venv
-	uv pip install -e ".[data,eval,dev]"
+	uv pip install -e ".[data,train,eval,dev]"
 
 install:
 	$(PYTHON) -m pip install -e .
