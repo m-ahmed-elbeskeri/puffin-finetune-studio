@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🐧 puffin-finetune-studio
+# puffin-finetune-studio
 
 **The golden-path platform for fine-tuning open LLMs, and shipping them safely.**
 
@@ -14,13 +14,17 @@ with a single command.
 [![Code style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-[Quickstart](#-quickstart) · [Why](#-why-puffin) · [Architecture](#-architecture) · [The Copilot](#-the-copilot) · [Docs](#-documentation) · [Contributing](#-contributing)
+[Quickstart](#quickstart) · [Why](#why-puffin) · [Architecture](#architecture) · [The Copilot](#the-copilot) · [Docs](#documentation) · [Contributing](#contributing)
+
+<br>
+
+<img src="docs/images/dashboard.png" alt="Puffin Copilot dashboard: KPI tiles, latest run, promotion gate, serving and data status" width="880">
 
 </div>
 
 ---
 
-## ✨ TL;DR
+## TL;DR
 
 ```bash
 pip install -e ".[copilot]"
@@ -37,7 +41,7 @@ projects, just YAML.
 
 ---
 
-## 🧭 Why puffin?
+## Why puffin?
 
 Most teams rebuild the same fragile scaffolding for every fine-tune: a training script here,
 an eval notebook there, a serving app that quietly drifts out of sync with training. puffin
@@ -54,7 +58,7 @@ turns that into one opinionated, tested platform.
 
 ---
 
-## 🚀 Quickstart
+## Quickstart
 
 ### Prerequisites
 
@@ -110,7 +114,7 @@ laptop CPU. A 20-row reference dataset lives at `tests/fixtures/example.jsonl`.
 
 ---
 
-## 🏗 Architecture
+## Architecture
 
 The whole platform is driven by YAML configs. Training and serving share one feature layer so
 they can never drift apart, the single most common fine-tuning failure.
@@ -162,7 +166,7 @@ they can never drift apart, the single most common fine-tuning failure.
 
 ---
 
-## 🤖 The Copilot
+## The Copilot
 
 `copilot/` is an optional Next.js + FastAPI dashboard that gives the whole `llmops.*`
 codebase a friendly face and an AI chat with tool-use access to it.
@@ -176,11 +180,18 @@ codebase a friendly face and an AI chat with tool-use access to it.
 - **Every page has AI actions:** audit data, run the pipeline, run evals + gate, push/promote,
   diagnose drift. `Ctrl/Cmd+K` opens a page-aware command bar.
 
+<table>
+<tr>
+<td width="50%"><img src="docs/images/train-studio.png" alt="Train Studio: pick a method (SFT/LoRA, DPO, KTO, reward, GRPO, RLOO) or tune every knob, with live GPU detection"><br><div align="center"><sub><b>Train Studio</b>: recipes or a full knob editor, GPU-aware</sub></div></td>
+<td width="50%"><img src="docs/images/monitor.png" alt="Monitor: latency over time, token throughput, quality and drift"><br><div align="center"><sub><b>Monitor</b>: latency, throughput, quality, drift</sub></div></td>
+</tr>
+</table>
+
 <div align="center"><em>Full page list, provider matrix, and tool catalogue in <a href="copilot/README.md">copilot/README.md</a>.</em></div>
 
 ---
 
-## 📦 Dataset format
+## Dataset format
 
 <details>
 <summary><strong>SFT (chat-style)</strong></summary>
@@ -219,7 +230,7 @@ blocked before training.
 
 ---
 
-## 🎯 Fine-tuning methods
+## Fine-tuning methods
 
 | Situation | Method | Module |
 | --- | --- | --- |
@@ -233,7 +244,7 @@ Default recommendation: **SFT + LoRA**. Switch by editing `configs/train.yaml`, 
 
 ---
 
-## 🛡 Evaluation gates
+## Evaluation gates
 
 The promotion gate runs four eval layers and fails the build if thresholds are missed:
 
@@ -257,7 +268,7 @@ gates:
 
 ---
 
-## ☁️ Deployment
+## Deployment
 
 | Profile | Compute | Serving | Registry |
 | --- | --- | --- | --- |
@@ -271,7 +282,7 @@ Pick a profile in `configs/deploy.yaml` (`platform.provider`); the rest of the c
 
 ---
 
-## 📁 Repository layout
+## Repository layout
 
 ```text
 puffin-finetune-studio/
@@ -300,7 +311,7 @@ puffin-finetune-studio/
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 | Topic | Link |
 | --- | --- |
@@ -312,7 +323,7 @@ puffin-finetune-studio/
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are very welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) for the dev
 setup, coding standards (ruff + mypy + pytest), and PR checklist, and
@@ -324,22 +335,22 @@ make setup && make lint && make test-fast   # green before you push
 
 Good first issues are labelled [`good first issue`](https://github.com/m-ahmed-elbeskeri/puffin-finetune-studio/labels/good%20first%20issue).
 
-## 🔒 Security
+## Security
 
 Found a vulnerability? Please **do not** open a public issue. See [SECURITY.md](SECURITY.md)
 for private disclosure.
 
-## 🗺 Roadmap
+## Roadmap
 
 See [open issues](https://github.com/m-ahmed-elbeskeri/puffin-finetune-studio/issues) and the
 [Discussions](https://github.com/m-ahmed-elbeskeri/puffin-finetune-studio/discussions) board.
 Near-term: GRPO/KTO recipe polish, hosted demo, one-click cloud submit from the Copilot.
 
-## 📄 License
+## License
 
 [Apache 2.0](LICENSE). Use it, fork it, ship it.
 
-## 🙏 Acknowledgements
+## Acknowledgements
 
 Built on the shoulders of [Transformers](https://github.com/huggingface/transformers),
 [TRL](https://github.com/huggingface/trl), [PEFT](https://github.com/huggingface/peft),
@@ -348,6 +359,6 @@ and [MLflow](https://github.com/mlflow/mlflow).
 
 <div align="center">
 
-If puffin saves you a weekend, consider leaving a ⭐. It genuinely helps.
+If puffin saves you a weekend, consider leaving a . It genuinely helps.
 
 </div>
