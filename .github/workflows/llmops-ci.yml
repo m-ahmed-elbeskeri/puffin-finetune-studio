@@ -41,7 +41,8 @@ jobs:
         run: uv venv --python 3.11
 
       - name: Install package + dev extras
-        run: uv pip install -e ".[data,eval,dev]"
+        # copilot extra pulls fastapi/aiosqlite/etc. so tests/copilot collects.
+        run: uv pip install -e ".[data,eval,dev,copilot]"
 
       - name: Ruff check
         run: uv run ruff check src tests
