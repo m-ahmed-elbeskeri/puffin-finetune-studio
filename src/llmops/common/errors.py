@@ -1,4 +1,5 @@
 """Custom exceptions raised throughout the puffin pipeline."""
+
 from __future__ import annotations
 
 

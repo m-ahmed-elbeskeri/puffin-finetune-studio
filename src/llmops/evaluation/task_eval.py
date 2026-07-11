@@ -8,6 +8,7 @@ generates a response per record, applies the rubric, and writes:
     metrics["task_records"]             — total number of records evaluated
     metrics["task_per_case"]            — list of per-case results
 """
+
 from __future__ import annotations
 
 import argparse

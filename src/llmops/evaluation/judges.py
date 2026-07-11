@@ -2,6 +2,7 @@
 
 For richer LLM-as-judge scoring, plug a `Generator` into `llm_judge_score()`.
 """
+
 from __future__ import annotations
 
 import json
@@ -97,7 +98,9 @@ def llm_judge_score(
     from llmops.features.schemas import Message, Role
 
     messages = [
-        Message(role=Role.SYSTEM, content="You are a strict evaluation judge. Reply with JSON only."),
+        Message(
+            role=Role.SYSTEM, content="You are a strict evaluation judge. Reply with JSON only."
+        ),
         Message(role=Role.USER, content=rubric_prompt + "\n\nResponse to score:\n" + response),
     ]
     out = judge_generator.generate(messages, max_new_tokens=64)

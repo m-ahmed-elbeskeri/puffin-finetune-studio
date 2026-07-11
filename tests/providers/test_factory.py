@@ -51,5 +51,13 @@ def test_factory_can_construct_cloud_specs_lazily():
     assert s.name == "gcs"
     s = get_storage({"storage": {"backend": "s3", "bucket": "x", "region": "us-east-1"}})
     assert s.name == "s3"
-    s = get_storage({"storage": {"backend": "azure_blob", "container": "x", "account_url": "https://x.blob.core.windows.net"}})
+    s = get_storage(
+        {
+            "storage": {
+                "backend": "azure_blob",
+                "container": "x",
+                "account_url": "https://x.blob.core.windows.net",
+            }
+        }
+    )
     assert s.name == "azure_blob"

@@ -1,10 +1,10 @@
 """Record-level CRUD on JSONL files."""
+
 from __future__ import annotations
 
 import json
 
 import pytest
-
 from copilot.backend import data_records as dr
 
 
@@ -58,6 +58,6 @@ def test_validation_and_jail(repo):
     with pytest.raises(dr.RecordError):
         dr.update_record(repo, "data/raw/d.jsonl", 5, {"i": 1})  # out of range
     with pytest.raises(dr.RecordError):
-        dr.append_record(repo, "../escape.jsonl", {"i": 1})       # path jail
+        dr.append_record(repo, "../escape.jsonl", {"i": 1})  # path jail
     with pytest.raises(dr.RecordError):
-        dr.read_records(repo, "data/raw/d.txt")                   # not jsonl
+        dr.read_records(repo, "data/raw/d.txt")  # not jsonl

@@ -1,4 +1,5 @@
 """Tokenizer wrapper — identical settings in training and serving."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

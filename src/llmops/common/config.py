@@ -1,4 +1,5 @@
 """YAML config loading with env-var interpolation, deep merge, and lineage hashing."""
+
 from __future__ import annotations
 
 import hashlib
@@ -66,11 +67,7 @@ def merge_configs(*configs: dict[str, Any]) -> dict[str, Any]:
 
 def _deep_merge(target: dict[str, Any], source: dict[str, Any]) -> None:
     for key, value in source.items():
-        if (
-            key in target
-            and isinstance(target[key], dict)
-            and isinstance(value, dict)
-        ):
+        if key in target and isinstance(target[key], dict) and isinstance(value, dict):
             _deep_merge(target[key], value)
         else:
             target[key] = value

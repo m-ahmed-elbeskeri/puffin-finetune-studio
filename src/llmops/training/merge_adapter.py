@@ -6,6 +6,7 @@ CLI:
         --adapter artifacts/adapter \
         --output artifacts/model
 """
+
 from __future__ import annotations
 
 import argparse

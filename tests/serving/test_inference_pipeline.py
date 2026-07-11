@@ -47,9 +47,7 @@ def test_inference_pipeline_request_id_propagates():
 
 
 def test_coerce_request_validates():
-    req = coerce_request(
-        {"model": "x", "messages": [{"role": "user", "content": "hi"}]}
-    )
+    req = coerce_request({"model": "x", "messages": [{"role": "user", "content": "hi"}]})
     assert isinstance(req, ChatCompletionRequest)
 
 

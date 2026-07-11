@@ -13,6 +13,7 @@ Two modes:
 
 Outputs `artifacts/monitoring/drift.json`.
 """
+
 from __future__ import annotations
 
 import argparse

@@ -4,6 +4,7 @@ Each request is logged as a single line for easy ingestion by log aggregators.
 The `log_inputs` and `log_outputs` flags control whether the actual prompt /
 response text is recorded (default: NO — to minimize PII spillage).
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -37,8 +38,10 @@ class RequestLogger:
         feedback_path: str | Path | None = None,
     ) -> None:
         self.log_path = Path(log_path) if log_path else None
-        self.feedback_path = Path(feedback_path) if feedback_path else (
-            self.log_path.with_name("feedback.jsonl") if self.log_path else None
+        self.feedback_path = (
+            Path(feedback_path)
+            if feedback_path
+            else (self.log_path.with_name("feedback.jsonl") if self.log_path else None)
         )
         self.log_inputs = log_inputs
         self.log_outputs = log_outputs

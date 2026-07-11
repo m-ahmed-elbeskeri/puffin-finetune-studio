@@ -9,7 +9,11 @@ def _records():
     return [
         {"id": "a", "messages": [{"role": "user", "content": "Hello world"}], "quality_score": 0.5},
         {"id": "b", "messages": [{"role": "user", "content": "Hello world"}], "quality_score": 0.9},
-        {"id": "c", "messages": [{"role": "user", "content": "Totally different question"}], "quality_score": 0.7},
+        {
+            "id": "c",
+            "messages": [{"role": "user", "content": "Totally different question"}],
+            "quality_score": 0.7,
+        },
     ]
 
 

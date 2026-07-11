@@ -4,6 +4,7 @@ Uses the SHARED `build_training_text` from `llmops.features.prompt_builder` so
 the supervised text is byte-identical to what the inference pipeline sees at
 serving time. This is the load-bearing anti-skew step.
 """
+
 from __future__ import annotations
 
 from collections.abc import Iterator
@@ -52,21 +53,25 @@ def load_text_dataset(
     """Materialize HF Datasets with `text` column. Lazy import of `datasets`."""
     from datasets import Dataset, DatasetDict
 
-    train_records = list(jsonl_to_text_iter(
-        train_path,
-        chat_template_version=chat_template_version,
-        eos_token=eos_token,
-    ))
+    train_records = list(
+        jsonl_to_text_iter(
+            train_path,
+            chat_template_version=chat_template_version,
+            eos_token=eos_token,
+        )
+    )
     if limit is not None:
         train_records = train_records[:limit]
 
     splits: dict[str, Any] = {"train": Dataset.from_list(train_records)}
     if eval_path is not None and Path(eval_path).exists():
-        eval_records = list(jsonl_to_text_iter(
-            eval_path,
-            chat_template_version=chat_template_version,
-            eos_token=eos_token,
-        ))
+        eval_records = list(
+            jsonl_to_text_iter(
+                eval_path,
+                chat_template_version=chat_template_version,
+                eos_token=eos_token,
+            )
+        )
         if limit is not None:
             eval_records = eval_records[: max(1, limit // 4)]
         splits["eval"] = Dataset.from_list(eval_records)

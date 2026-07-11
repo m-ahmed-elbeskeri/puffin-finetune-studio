@@ -1,4 +1,5 @@
 """SSE encode/parse round-trip."""
+
 from copilot.backend.sse import encode_sse, parse_sse
 
 

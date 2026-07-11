@@ -2,6 +2,7 @@
 
 Lazy-imports boto3 and sagemaker.
 """
+
 from __future__ import annotations
 
 import contextlib
@@ -85,7 +86,7 @@ class S3Storage:
             return local
         local.mkdir(parents=True, exist_ok=True)
         for o in objs:
-            rel = o["Key"][len(key):].lstrip("/")
+            rel = o["Key"][len(key) :].lstrip("/")
             target = local / rel
             target.parent.mkdir(parents=True, exist_ok=True)
             self.client.download_file(bucket, o["Key"], str(target))
@@ -184,27 +185,31 @@ class SageMakerRegistry:
     def promote(self, name: str, version: str, alias: str) -> None:
         status = "Approved" if alias in {"production", "staging"} else "PendingManualApproval"
         arn = self._find_arn(name, version)
-        self.sm.update_model_package(
-            ModelPackageArn=arn, ModelApprovalStatus=status
-        )
+        self.sm.update_model_package(ModelPackageArn=arn, ModelApprovalStatus=status)
         log.info("set model %s v%s status=%s (alias=%s)", name, version, status, alias)
 
     def _find_arn(self, name: str, version: str) -> str:
-        packages = self.sm.list_model_packages(ModelPackageGroupName=name)["ModelPackageSummaryList"]
+        packages = self.sm.list_model_packages(ModelPackageGroupName=name)[
+            "ModelPackageSummaryList"
+        ]
         for p in packages:
             if str(p["ModelPackageVersion"]) == version:
                 return p["ModelPackageArn"]
         raise KeyError(f"no version {version} in SageMaker package group {name}")
 
     def get_model_uri(self, name: str, alias: str = "production") -> str:
-        packages = self.sm.list_model_packages(ModelPackageGroupName=name)["ModelPackageSummaryList"]
+        packages = self.sm.list_model_packages(ModelPackageGroupName=name)[
+            "ModelPackageSummaryList"
+        ]
         approved = [p for p in packages if p["ModelApprovalStatus"] == "Approved"]
         if not approved:
             raise KeyError(f"no approved versions of {name}")
         return approved[0]["ModelPackageArn"]
 
     def list_versions(self, name: str) -> list[dict[str, Any]]:
-        packages = self.sm.list_model_packages(ModelPackageGroupName=name)["ModelPackageSummaryList"]
+        packages = self.sm.list_model_packages(ModelPackageGroupName=name)[
+            "ModelPackageSummaryList"
+        ]
         return [
             {
                 "version": str(p["ModelPackageVersion"]),

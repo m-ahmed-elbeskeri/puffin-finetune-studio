@@ -3,16 +3,15 @@
 Builds an isolated repo tree under tmp_path so tools that touch the
 filesystem don't pollute the real project.
 """
+
 from __future__ import annotations
 
 import json
-import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
 import pytest_asyncio
-
 from copilot.backend.settings import Settings, reset_settings_for_tests
 from copilot.backend.threads import ThreadStore
 from copilot.backend.tools.registry import ToolContext
@@ -31,7 +30,8 @@ def repo(tmp_path: Path) -> Path:
     (tmp_path / "profiles").mkdir(parents=True)
     # Minimal data config so config_read works.
     (tmp_path / "configs" / "data.yaml").write_text(
-        "name: test\nsources: [example]\n", encoding="utf-8",
+        "name: test\nsources: [example]\n",
+        encoding="utf-8",
     )
     (tmp_path / "configs" / "train.yaml").write_text(
         "model:\n  base_model: hf/test\ntraining:\n  epochs: 1\n",
@@ -75,17 +75,31 @@ async def store(settings: Settings) -> ThreadStore:
 def seed_finished_run(repo: Path) -> Path:
     """Plant a completed training run in artifacts/adapter."""
     d = repo / "artifacts" / "adapter"
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     start = (now - timedelta(minutes=10)).isoformat(timespec="microseconds")
     end = (now - timedelta(minutes=5)).isoformat(timespec="microseconds")
-    (d / "training_summary.json").write_text(json.dumps({
-        "status": "completed", "method": "sft", "run_name": "test-run",
-        "smoke_test": True, "base_model": "test/SmolLM2",
-        "peft_method": "lora", "start_ts": start, "end_ts": end,
-        "duration_s": 300.0, "total_steps": 4, "final_loss": 0.5,
-        "best_eval_loss": 0.6, "trainable_params": 1024, "total_params": 1_000_000,
-        "peak_vram_gb": 0.5, "adapter_dir": str(d),
-    }))
+    (d / "training_summary.json").write_text(
+        json.dumps(
+            {
+                "status": "completed",
+                "method": "sft",
+                "run_name": "test-run",
+                "smoke_test": True,
+                "base_model": "test/SmolLM2",
+                "peft_method": "lora",
+                "start_ts": start,
+                "end_ts": end,
+                "duration_s": 300.0,
+                "total_steps": 4,
+                "final_loss": 0.5,
+                "best_eval_loss": 0.6,
+                "trainable_params": 1024,
+                "total_params": 1_000_000,
+                "peak_vram_gb": 0.5,
+                "adapter_dir": str(d),
+            }
+        )
+    )
     rows = [
         {"ts": start, "step": 1, "loss": 1.0, "learning_rate": 2e-4, "epoch": 0.25},
         {"ts": start, "step": 2, "loss": 0.8, "learning_rate": 1.8e-4, "epoch": 0.5},
@@ -103,21 +117,35 @@ def seed_active_run(repo: Path) -> Path:
     """Plant a running training run in artifacts/adapter-smoke."""
     d = repo / "artifacts" / "adapter-smoke"
     d.mkdir(parents=True, exist_ok=True)
-    now = datetime.now(timezone.utc)
-    (d / "training_state.json").write_text(json.dumps({
-        "status": "running", "method": "sft", "run_name": "active-run",
-        "smoke_test": True, "base_model": "test/SmolLM2", "peft_method": "lora",
-        "pid": 9999,
-        "start_ts": (now - timedelta(seconds=10)).isoformat(timespec="microseconds"),
-        "last_update_ts": now.isoformat(timespec="microseconds"),
-        "current_step": 3, "total_steps": 8,
-        "current_epoch": 0.375, "total_epochs": 1.0,
-        "current_loss": 0.9, "current_lr": 1.5e-4,
-        "error": None,
-    }))
+    now = datetime.now(UTC)
+    (d / "training_state.json").write_text(
+        json.dumps(
+            {
+                "status": "running",
+                "method": "sft",
+                "run_name": "active-run",
+                "smoke_test": True,
+                "base_model": "test/SmolLM2",
+                "peft_method": "lora",
+                "pid": 9999,
+                "start_ts": (now - timedelta(seconds=10)).isoformat(timespec="microseconds"),
+                "last_update_ts": now.isoformat(timespec="microseconds"),
+                "current_step": 3,
+                "total_steps": 8,
+                "current_epoch": 0.375,
+                "total_epochs": 1.0,
+                "current_loss": 0.9,
+                "current_lr": 1.5e-4,
+                "error": None,
+            }
+        )
+    )
     (d / "training_metrics.jsonl").write_text(
-        json.dumps({"step": 1, "loss": 1.1}) + "\n"
-        + json.dumps({"step": 2, "loss": 0.95}) + "\n"
-        + json.dumps({"step": 3, "loss": 0.9}) + "\n",
+        json.dumps({"step": 1, "loss": 1.1})
+        + "\n"
+        + json.dumps({"step": 2, "loss": 0.95})
+        + "\n"
+        + json.dumps({"step": 3, "loss": 0.9})
+        + "\n",
     )
     return d

@@ -1,20 +1,26 @@
 """Project brief: persistence, summary, and REST."""
+
 from __future__ import annotations
 
 from pathlib import Path
 
-from starlette.testclient import TestClient
-
 from copilot.backend import brief_ops
 from copilot.backend.app import create_app
 from copilot.backend.settings import Settings
+from starlette.testclient import TestClient
 
 
 def _client(repo: Path) -> TestClient:
-    return TestClient(create_app(settings=Settings(
-        anthropic_api_key="", repo_root=repo,
-        db_path=repo / "artifacts" / "copilot" / "threads.sqlite3",
-        enable_dangerous_tools=False)))
+    return TestClient(
+        create_app(
+            settings=Settings(
+                anthropic_api_key="",
+                repo_root=repo,
+                db_path=repo / "artifacts" / "copilot" / "threads.sqlite3",
+                enable_dangerous_tools=False,
+            )
+        )
+    )
 
 
 def test_brief_absent(repo: Path) -> None:

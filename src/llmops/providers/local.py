@@ -2,6 +2,7 @@
 
 Useful for laptop development, CI, and offline reproductions.
 """
+
 from __future__ import annotations
 
 import json
@@ -58,11 +59,7 @@ class LocalStorage:
             return [str(base.relative_to(self.root))]
         if not base.exists():
             return []
-        return [
-            str(p.relative_to(self.root))
-            for p in base.rglob("*")
-            if p.is_file()
-        ]
+        return [str(p.relative_to(self.root)) for p in base.rglob("*") if p.is_file()]
 
     def open_read(self, remote_path: str) -> bytes:
         return self._resolve(remote_path).read_bytes()
@@ -109,7 +106,10 @@ class LocalRegistry:
     ) -> str:
         manifest = self._read_manifest(name)
         next_idx = (
-            max((int(v["version"]) for v in manifest["versions"] if v["version"].isdigit()), default=0)
+            max(
+                (int(v["version"]) for v in manifest["versions"] if v["version"].isdigit()),
+                default=0,
+            )
             + 1
         )
         version = version or str(next_idx)

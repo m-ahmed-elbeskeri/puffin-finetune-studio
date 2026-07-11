@@ -4,6 +4,7 @@ The validator is deliberately strict: it raises ConfigValidationError with an
 actionable fix BEFORE any model load. We assert both that it fires on bad
 configs and that it stays silent on good ones.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -163,6 +164,7 @@ def test_flash_attention_2_without_package_rejected():
     cfg["model"]["attn_impl"] = "flash_attention_2"
     try:
         import flash_attn  # noqa: F401
+
         pytest.skip("flash-attn is installed; this test asserts the missing-package error")
     except ImportError:
         pass
@@ -177,6 +179,7 @@ def test_torch_compile_without_triton_rejected():
     cfg = _base_cfg(torch_compile=True)
     try:
         import triton  # noqa: F401
+
         pytest.skip("triton is installed; this test asserts the missing-package error")
     except ImportError:
         pass
@@ -188,6 +191,7 @@ def test_use_liger_kernel_without_package_rejected():
     cfg = _base_cfg(use_liger_kernel=True)
     try:
         import liger_kernel  # noqa: F401
+
         pytest.skip("liger-kernel is installed")
     except ImportError:
         pass

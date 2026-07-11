@@ -7,6 +7,7 @@ DPO. Wraps TRL's RewardTrainer.
 
     python -m llmops.training.train_reward --config configs/train_reward.yaml
 """
+
 from __future__ import annotations
 
 import argparse
@@ -19,10 +20,14 @@ from llmops.common.config import load_yaml
 from llmops.common.logging import get_logger
 from llmops.data.io_utils import read_jsonl
 from llmops.training._trl_shared import (
-    apply_smoke, common_config_kwargs, run_and_save,
+    apply_smoke,
+    common_config_kwargs,
+    run_and_save,
 )
 from llmops.training.train_sft_lora import (
-    _build_model_init_kwargs, _build_peft_config, _print_effective_config,
+    _build_model_init_kwargs,
+    _build_peft_config,
+    _print_effective_config,
     _validate_config,
 )
 
@@ -39,14 +44,15 @@ def _load_reward_model_and_tokenizer(model_cfg: dict[str, Any], train_cfg: dict[
 
     base_model = model_cfg["base_model"]
     tokenizer = AutoTokenizer.from_pretrained(
-        base_model, use_fast=True,
-        trust_remote_code=bool(model_cfg.get("trust_remote_code", False)))
+        base_model, use_fast=True, trust_remote_code=bool(model_cfg.get("trust_remote_code", False))
+    )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
     init_kwargs = _build_model_init_kwargs(model_cfg, train_cfg)
     model = AutoModelForSequenceClassification.from_pretrained(
-        base_model, num_labels=1, **init_kwargs)
+        base_model, num_labels=1, **init_kwargs
+    )
     if model.config.pad_token_id is None:
         model.config.pad_token_id = tokenizer.pad_token_id
     return model, tokenizer
@@ -69,8 +75,7 @@ def _load_pref_dataset(path: str | Path, *, limit: int | None = None) -> Any:
     if limit is not None:
         rows = rows[:limit]
     if not rows:
-        raise ValueError(
-            f"No preference pairs in {path}. Each row needs chosen + rejected.")
+        raise ValueError(f"No preference pairs in {path}. Each row needs chosen + rejected.")
     return Dataset.from_list(rows)
 
 
@@ -105,11 +110,15 @@ def train(cfg: dict[str, Any], *, smoke_test: bool = False) -> Path:
     # target the SEQ_CLS task or PEFT wires it as a causal LM and crashes.
     if peft_config is not None:
         from peft import TaskType
+
         peft_config.task_type = TaskType.SEQ_CLS
 
     train_ds = _load_pref_dataset(data_cfg["train_path"], limit=data_cfg.get("limit"))
-    eval_ds = (_load_pref_dataset(data_cfg["eval_path"], limit=data_cfg.get("limit"))
-               if data_cfg.get("eval_path") else None)
+    eval_ds = (
+        _load_pref_dataset(data_cfg["eval_path"], limit=data_cfg.get("limit"))
+        if data_cfg.get("eval_path")
+        else None
+    )
 
     output_dir = Path(output_cfg.get("adapter_dir", "artifacts/reward-model"))
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -118,13 +127,25 @@ def train(cfg: dict[str, Any], *, smoke_test: bool = False) -> Path:
 
     def make_trainer(callbacks: list[Any], tok_kwarg: str) -> Any:
         return RewardTrainer(
-            model=model, args=args, train_dataset=train_ds, eval_dataset=eval_ds,
-            peft_config=peft_config, callbacks=callbacks, **{tok_kwarg: tokenizer})
+            model=model,
+            args=args,
+            train_dataset=train_ds,
+            eval_dataset=eval_ds,
+            peft_config=peft_config,
+            callbacks=callbacks,
+            **{tok_kwarg: tokenizer},
+        )
 
     return run_and_save(
-        method="reward", cfg=cfg, smoke_test=smoke_test, output_dir=output_dir,
-        tokenizer=tokenizer, base_model=model_cfg["base_model"],
-        peft_method=peft_method, make_trainer=make_trainer)
+        method="reward",
+        cfg=cfg,
+        smoke_test=smoke_test,
+        output_dir=output_dir,
+        tokenizer=tokenizer,
+        base_model=model_cfg["base_model"],
+        peft_method=peft_method,
+        make_trainer=make_trainer,
+    )
 
 
 def main(argv: list[str] | None = None) -> int:

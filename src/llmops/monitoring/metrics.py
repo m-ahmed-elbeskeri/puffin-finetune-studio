@@ -4,6 +4,7 @@ If `prometheus_client` is not installed (for example in a minimal eval-only
 install), every metric still imports and `.inc()` / `.observe()` calls become
 no-ops, and `/metrics` returns an empty registry.
 """
+
 from __future__ import annotations
 
 from typing import Any

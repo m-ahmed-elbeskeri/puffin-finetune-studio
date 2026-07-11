@@ -12,7 +12,7 @@ def test_strip_code_fences_no_fence():
 
 
 def test_strip_code_fences_unlabeled():
-    assert strip_code_fences("```\n{\"a\":1}\n```") == '{"a":1}'
+    assert strip_code_fences('```\n{"a":1}\n```') == '{"a":1}'
 
 
 def test_truncate_at_stop():

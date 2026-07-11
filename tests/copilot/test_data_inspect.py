@@ -1,10 +1,10 @@
 """Data inspection analyses (deterministic parts)."""
+
 from __future__ import annotations
 
 import json
 
 import pytest
-
 from copilot.backend import data_inspect as di
 
 
@@ -18,13 +18,22 @@ pytestmark = pytest.mark.asyncio
 
 async def test_quality_flags_empty_and_refusals(repo):
     rows = [
-        {"messages": [{"role": "user", "content": "hi"},
-                      {"role": "assistant", "content": "hello there friend"}]},
-        {"messages": [{"role": "user", "content": "help"},
-                      {"role": "assistant", "content": ""}]},          # empty
-        {"messages": [{"role": "user", "content": "do X"},
-                      {"role": "assistant", "content": "I'm sorry, I can't help with that."}]},
-        {"messages": [{"role": "user", "content": "and Y"}]},          # no assistant
+        {
+            "messages": [
+                {"role": "user", "content": "hi"},
+                {"role": "assistant", "content": "hello there friend"},
+            ]
+        },
+        {
+            "messages": [{"role": "user", "content": "help"}, {"role": "assistant", "content": ""}]
+        },  # empty
+        {
+            "messages": [
+                {"role": "user", "content": "do X"},
+                {"role": "assistant", "content": "I'm sorry, I can't help with that."},
+            ]
+        },
+        {"messages": [{"role": "user", "content": "and Y"}]},  # no assistant
     ]
     p = repo / "data" / "raw" / "d.jsonl"
     _write(p, rows)
@@ -40,7 +49,7 @@ async def test_quality_preference_length_bias(repo):
     rows = [
         {"prompt": "q1", "chosen": "a much longer and better answer here", "rejected": "no"},
         {"prompt": "q2", "chosen": "also clearly longer than the other", "rejected": "nah"},
-        {"prompt": "q3", "chosen": "same", "rejected": "same"},   # identical
+        {"prompt": "q3", "chosen": "same", "rejected": "same"},  # identical
     ]
     p = repo / "data" / "raw" / "pref.jsonl"
     _write(p, rows)
@@ -52,18 +61,36 @@ async def test_quality_preference_length_bias(repo):
 
 
 async def test_leakage_catches_planted_overlap(repo):
-    shared = {"messages": [{"role": "user", "content": "leaked question"},
-                           {"role": "assistant", "content": "leaked answer"}]}
-    _write(repo / "data" / "processed" / "train.jsonl", [
-        shared,
-        {"messages": [{"role": "user", "content": "unique train"},
-                      {"role": "assistant", "content": "ok"}]},
-    ])
-    _write(repo / "data" / "processed" / "eval.jsonl", [
-        shared,
-        {"messages": [{"role": "user", "content": "unique eval"},
-                      {"role": "assistant", "content": "ok"}]},
-    ])
+    shared = {
+        "messages": [
+            {"role": "user", "content": "leaked question"},
+            {"role": "assistant", "content": "leaked answer"},
+        ]
+    }
+    _write(
+        repo / "data" / "processed" / "train.jsonl",
+        [
+            shared,
+            {
+                "messages": [
+                    {"role": "user", "content": "unique train"},
+                    {"role": "assistant", "content": "ok"},
+                ]
+            },
+        ],
+    )
+    _write(
+        repo / "data" / "processed" / "eval.jsonl",
+        [
+            shared,
+            {
+                "messages": [
+                    {"role": "user", "content": "unique eval"},
+                    {"role": "assistant", "content": "ok"},
+                ]
+            },
+        ],
+    )
     r = di.analyze_leakage(repo)
     assert r["present"] is True
     assert r["clean"] is False
@@ -73,10 +100,14 @@ async def test_leakage_catches_planted_overlap(repo):
 
 
 async def test_leakage_clean_when_no_overlap(repo):
-    _write(repo / "data" / "processed" / "train.jsonl", [
-        {"messages": [{"role": "user", "content": "a"}, {"role": "assistant", "content": "1"}]}])
-    _write(repo / "data" / "processed" / "eval.jsonl", [
-        {"messages": [{"role": "user", "content": "b"}, {"role": "assistant", "content": "2"}]}])
+    _write(
+        repo / "data" / "processed" / "train.jsonl",
+        [{"messages": [{"role": "user", "content": "a"}, {"role": "assistant", "content": "1"}]}],
+    )
+    _write(
+        repo / "data" / "processed" / "eval.jsonl",
+        [{"messages": [{"role": "user", "content": "b"}, {"role": "assistant", "content": "2"}]}],
+    )
     r = di.analyze_leakage(repo)
     assert r["present"] is True and r["clean"] is True
 
@@ -89,8 +120,15 @@ async def test_leakage_absent_without_splits(repo):
 async def test_tokens_heuristic_fallback(repo, monkeypatch):
     # Force the no-tokenizer path so the test never touches transformers.
     monkeypatch.setattr(di, "_get_tokenizer", lambda _m: None)
-    rows = [{"messages": [{"role": "user", "content": "x" * 40},
-                          {"role": "assistant", "content": "y" * 40}]} for _ in range(5)]
+    rows = [
+        {
+            "messages": [
+                {"role": "user", "content": "x" * 40},
+                {"role": "assistant", "content": "y" * 40},
+            ]
+        }
+        for _ in range(5)
+    ]
     _write(repo / "data" / "raw" / "t.jsonl", rows)
     r = di.analyze_tokens(repo, "data/raw/t.jsonl")
     assert r["exact"] is False
@@ -102,10 +140,15 @@ async def test_tokens_heuristic_fallback(repo, monkeypatch):
 
 async def test_template_preview_marks_assistant_trained(repo, monkeypatch):
     monkeypatch.setattr(di, "_get_tokenizer", lambda _m: None)
-    rows = [{"messages": [
-        {"role": "system", "content": "be nice"},
-        {"role": "user", "content": "hi"},
-        {"role": "assistant", "content": "hello"}]}]
+    rows = [
+        {
+            "messages": [
+                {"role": "system", "content": "be nice"},
+                {"role": "user", "content": "hi"},
+                {"role": "assistant", "content": "hello"},
+            ]
+        }
+    ]
     _write(repo / "data" / "raw" / "tp.jsonl", rows)
     r = di.template_preview(repo, "data/raw/tp.jsonl", index=0)
     trained = [s for s in r["segments"] if s["trained"]]
@@ -115,9 +158,11 @@ async def test_template_preview_marks_assistant_trained(repo, monkeypatch):
 
 class _FakeBatchEncoding:
     """Mimics transformers BatchEncoding: len() is key count, not tokens."""
+
     def __init__(self, ids):
         self.input_ids = ids
         self._data = {"input_ids": ids, "attention_mask": [1] * len(ids)}
+
     def __len__(self):
         return len(self._data)  # 2, the trap we must not fall into
 
@@ -125,6 +170,7 @@ class _FakeBatchEncoding:
 class _FakeTok:
     def __init__(self, mode):
         self.mode = mode
+
     def apply_chat_template(self, msgs, tokenize=True):
         ids = list(range(46))
         if not tokenize:
@@ -143,10 +189,11 @@ async def test_count_chat_tokens_handles_return_shapes(mode):
 
 
 async def test_fingerprint_hashes_and_lineage(repo):
-    _write(repo / "data" / "processed" / "train.jsonl",
-           [{"messages": [{"role": "user", "content": "a"}]}])
-    _write(repo / "data" / "raw" / "src.jsonl",
-           [{"messages": [{"role": "user", "content": "a"}]}])
+    _write(
+        repo / "data" / "processed" / "train.jsonl",
+        [{"messages": [{"role": "user", "content": "a"}]}],
+    )
+    _write(repo / "data" / "raw" / "src.jsonl", [{"messages": [{"role": "user", "content": "a"}]}])
     r = di.dataset_fingerprint(repo)
     assert r["built"] is True
     assert "train" in r["splits"]

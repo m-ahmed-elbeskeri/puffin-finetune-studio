@@ -1,4 +1,5 @@
 """Tests for the SHARED features module — the anti-skew defense."""
+
 from __future__ import annotations
 
 import pytest
@@ -20,6 +21,7 @@ from llmops.features.schemas import (
 )
 
 # -- schemas --
+
 
 def test_message_validation_strict():
     with pytest.raises(ValidationError):
@@ -68,6 +70,7 @@ def test_chat_completion_request_temperature_clamp():
 
 # -- chat template --
 
+
 def test_chat_template_known_version():
     assert "user" in get_chat_template(DEFAULT_CHAT_TEMPLATE_VERSION)
 
@@ -106,6 +109,7 @@ def test_apply_chat_template_dict_input():
 
 
 # -- prompt builder (the load-bearing anti-skew check) --
+
 
 def test_build_messages_order():
     msgs = build_messages("hello", system_prompt="be helpful")
@@ -146,6 +150,7 @@ def test_anti_skew_training_and_serving_match():
 
 
 # -- RAG context --
+
 
 def test_format_rag_empty():
     assert "[No documents" in format_rag_context([])

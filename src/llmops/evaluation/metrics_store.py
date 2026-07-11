@@ -3,6 +3,7 @@
 Each eval module appends to a single JSON file (atomic write) so the gate
 can read one canonical artifact regardless of execution order.
 """
+
 from __future__ import annotations
 
 import json

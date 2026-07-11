@@ -5,6 +5,7 @@ pipeline (constructing supervised examples) and the inference pipeline
 (constructing live requests) import this. Drift between training and
 serving prompts is the #1 cause of fine-tune quality regressions.
 """
+
 from __future__ import annotations
 
 from collections.abc import Sequence

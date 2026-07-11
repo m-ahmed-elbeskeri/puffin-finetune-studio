@@ -1,10 +1,9 @@
 """Split-config surgical edits + eval-set authoring."""
+
 from __future__ import annotations
 
 import pytest
-
 from copilot.backend import data_authoring as da
-
 
 DATA_YAML = """\
 name: test
@@ -44,8 +43,7 @@ def test_read_split_defaults_when_missing(repo):
 
 
 def test_update_split_preserves_comments_and_other_keys(repo, data_cfg):
-    result = da.update_split(
-        repo, {"train": 0.8, "eval": 0.1, "test": 0.1, "seed": 7})
+    result = da.update_split(repo, {"train": 0.8, "eval": 0.1, "test": 0.1, "seed": 7})
     assert result == {"train": 0.8, "eval": 0.1, "test": 0.1, "seed": 7}
 
     text = data_cfg.read_text(encoding="utf-8")
@@ -77,17 +75,15 @@ def test_update_split_missing_block_raises(repo):
 
 def test_write_eval_set_replace_and_append(repo):
     r1 = da.write_eval_set(
-        repo, "golden.jsonl",
-        '{"id": "g1", "prompt": "hi"}\n{"id": "g2", "prompt": "yo"}')
+        repo, "golden.jsonl", '{"id": "g1", "prompt": "hi"}\n{"id": "g2", "prompt": "yo"}'
+    )
     assert r1["total"] == 2 and r1["added"] == 2 and r1["cleared"] is False
 
-    r2 = da.write_eval_set(
-        repo, "golden.jsonl", '{"id": "g3", "prompt": "sup"}', mode="append")
+    r2 = da.write_eval_set(repo, "golden.jsonl", '{"id": "g3", "prompt": "sup"}', mode="append")
     assert r2["total"] == 3 and r2["added"] == 1
     assert (repo / "eval_sets" / "golden.jsonl.bak").exists()
 
-    lines = (repo / "eval_sets" / "golden.jsonl").read_text(
-        encoding="utf-8").splitlines()
+    lines = (repo / "eval_sets" / "golden.jsonl").read_text(encoding="utf-8").splitlines()
     assert len(lines) == 3
 
 

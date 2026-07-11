@@ -2,6 +2,7 @@
 
 These run on CPU and assert the validator rejects Neuron-incompatible combos.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -45,6 +46,7 @@ def test_neuron_without_optimum_neuron_rejected():
     """If optimum-neuron isn't installed, validator must reject — not crash at runtime."""
     try:
         import optimum.neuron  # noqa: F401
+
         pytest.skip("optimum-neuron is installed; can't test missing-package error")
     except ImportError:
         pass
@@ -80,7 +82,9 @@ def test_neuron_plus_torch_compile_rejected():
         _validate_config(cfg)
 
 
-@pytest.mark.parametrize("optim", ["paged_adamw_8bit", "paged_adamw_32bit", "lion_8bit", "adamw_8bit"])
+@pytest.mark.parametrize(
+    "optim", ["paged_adamw_8bit", "paged_adamw_32bit", "lion_8bit", "adamw_8bit"]
+)
 def test_neuron_plus_bnb_optimizers_rejected(optim):
     cfg = _neuron_cfg()
     cfg["training"]["optim"] = optim

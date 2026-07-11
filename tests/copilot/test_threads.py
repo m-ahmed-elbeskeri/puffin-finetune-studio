@@ -1,8 +1,8 @@
 """ThreadStore round-trip tests."""
+
 from __future__ import annotations
 
 import pytest
-
 
 pytestmark = pytest.mark.asyncio
 
@@ -19,10 +19,10 @@ async def test_create_list_get(store):
 
 async def test_append_and_replay(store):
     thr = await store.create_thread(title="t", model="claude-sonnet-4-6")
-    await store.append_message(thr.id, role="user", content=[
-        {"type": "text", "text": "hi"}])
-    await store.append_message(thr.id, role="assistant", content=[
-        {"type": "text", "text": "hello back"}])
+    await store.append_message(thr.id, role="user", content=[{"type": "text", "text": "hi"}])
+    await store.append_message(
+        thr.id, role="assistant", content=[{"type": "text", "text": "hello back"}]
+    )
 
     msgs = await store.list_messages(thr.id)
     assert len(msgs) == 2
@@ -61,8 +61,7 @@ async def test_truncate_messages(store):
     thr = await store.create_thread(title="t", model="m")
     for i, text in enumerate(["a", "b", "c", "d"]):
         role = "user" if i % 2 == 0 else "assistant"
-        await store.append_message(
-            thr.id, role=role, content=[{"type": "text", "text": text}])
+        await store.append_message(thr.id, role=role, content=[{"type": "text", "text": text}])
 
     deleted = await store.truncate_messages(thr.id, 2)
     assert deleted == 2
@@ -70,8 +69,7 @@ async def test_truncate_messages(store):
     assert [m.content[0]["text"] for m in msgs] == ["a", "b"]
 
     # New appends continue from the truncated tail without idx collisions.
-    m = await store.append_message(
-        thr.id, role="user", content=[{"type": "text", "text": "e"}])
+    m = await store.append_message(thr.id, role="user", content=[{"type": "text", "text": "e"}])
     assert m.idx == 2
 
 
@@ -80,8 +78,7 @@ async def test_complex_content_roundtrips(store):
     thr = await store.create_thread(title="t", model="m")
     content = [
         {"type": "text", "text": "Let me check status."},
-        {"type": "tool_use", "id": "tu_1", "name": "project_status",
-         "input": {}},
+        {"type": "tool_use", "id": "tu_1", "name": "project_status", "input": {}},
     ]
     await store.append_message(thr.id, role="assistant", content=content)
     msgs = await store.list_messages(thr.id)

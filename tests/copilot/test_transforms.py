@@ -1,12 +1,11 @@
 """Custom pipeline transform scripts — CRUD + jailed execution."""
+
 from __future__ import annotations
 
 import json
 
 import pytest
-
 from copilot.backend import transforms as tf
-
 
 pytestmark = pytest.mark.asyncio
 
@@ -80,13 +79,15 @@ async def test_run_transform_end_to_end(repo):
     tf.save_transform(repo, "upper_case.py", UPPER_SCRIPT)
     src = repo / "data" / "raw" / "sample.jsonl"
     rows = [
-        {"messages": [{"role": "user", "content": "hi"},
-                      {"role": "assistant", "content": "hello there"}]},
-        {"messages": [{"role": "user", "content": "yo"},
-                      {"role": "assistant", "content": "hey"}]},
+        {
+            "messages": [
+                {"role": "user", "content": "hi"},
+                {"role": "assistant", "content": "hello there"},
+            ]
+        },
+        {"messages": [{"role": "user", "content": "yo"}, {"role": "assistant", "content": "hey"}]},
     ]
-    src.write_text(
-        "\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
+    src.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
 
     result = await tf.run_transform(repo, "upper_case.py", "data/raw/sample.jsonl")
 
@@ -98,9 +99,10 @@ async def test_run_transform_end_to_end(repo):
     assert "kept=2" in result["stdout_tail"]
 
     out_rows = [
-        json.loads(l) for l in
-        (repo / "data" / "raw" / "sample__upper_case.jsonl")
-        .read_text(encoding="utf-8").splitlines()
+        json.loads(line)
+        for line in (repo / "data" / "raw" / "sample__upper_case.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
     ]
     assert out_rows[0]["messages"][1]["content"] == "HELLO THERE"
 
@@ -112,11 +114,9 @@ async def test_run_transform_input_jail(repo):
     with pytest.raises(tf.TransformError):
         await tf.run_transform(repo, "upper_case.py", "secrets.jsonl")
     with pytest.raises(tf.TransformError):
-        await tf.run_transform(
-            repo, "upper_case.py", "data/raw/x.jsonl", "configs/out.jsonl")
+        await tf.run_transform(repo, "upper_case.py", "data/raw/x.jsonl", "configs/out.jsonl")
     with pytest.raises(tf.TransformError):
-        await tf.run_transform(
-            repo, "upper_case.py", "data/raw/x.jsonl", "data/raw/x.jsonl")
+        await tf.run_transform(repo, "upper_case.py", "data/raw/x.jsonl", "data/raw/x.jsonl")
     with pytest.raises(FileNotFoundError):
         await tf.run_transform(repo, "upper_case.py", "data/raw/missing.jsonl")
 
@@ -161,7 +161,10 @@ async def test_order_roundtrip_and_new_files_appended(repo):
     # A newly added script is appended, never hidden.
     tf.save_transform(repo, "c_script.py", PASSTHROUGH.replace("{MARK}", "c"))
     assert [t["name"] for t in tf.list_transforms(repo)] == [
-        "b_script.py", "a_script.py", "c_script.py"]
+        "b_script.py",
+        "a_script.py",
+        "c_script.py",
+    ]
 
 
 async def test_run_chain_pipes_in_order(repo):
@@ -170,24 +173,24 @@ async def test_run_chain_pipes_in_order(repo):
     src = repo / "data" / "raw" / "in.jsonl"
     src.write_text('{"id": 1}\n{"id": 2}\n', encoding="utf-8")
 
-    result = await tf.run_chain(
-        repo, ["first.py", "second.py"], "data/raw/in.jsonl")
+    result = await tf.run_chain(repo, ["first.py", "second.py"], "data/raw/in.jsonl")
     assert result["all_ok"] is True
     assert [s["script"] for s in result["steps"]] == ["first.py", "second.py"]
     assert result["output_lines"] == 2
 
-    rows = [json.loads(l) for l in
-            (repo / result["output"].replace("data/raw", "data/raw"))
-            .read_text(encoding="utf-8").splitlines()]
+    rows = [
+        json.loads(line)
+        for line in (repo / result["output"].replace("data/raw", "data/raw"))
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
     # Order preserved: first ran before second.
     assert rows[0]["marks"] == ["first", "second"]
 
 
 async def test_run_chain_stops_on_failure(repo):
     tf.save_transform(repo, "ok.py", PASSTHROUGH.replace("{MARK}", "ok"))
-    tf.save_transform(
-        repo, "boom.py",
-        '"""Fails."""\nimport sys\nprint("nope")\nsys.exit(2)\n')
+    tf.save_transform(repo, "boom.py", '"""Fails."""\nimport sys\nprint("nope")\nsys.exit(2)\n')
     src = repo / "data" / "raw" / "in.jsonl"
     src.write_text('{"id": 1}\n', encoding="utf-8")
 
@@ -200,8 +203,8 @@ async def test_run_chain_stops_on_failure(repo):
 
 async def test_run_transform_failure_surfaces(repo):
     tf.save_transform(
-        repo, "broken.py",
-        '"""Broken on purpose."""\nimport sys\nprint("boom")\nsys.exit(3)\n')
+        repo, "broken.py", '"""Broken on purpose."""\nimport sys\nprint("boom")\nsys.exit(3)\n'
+    )
     src = repo / "data" / "raw" / "s.jsonl"
     src.write_text("{}\n", encoding="utf-8")
     result = await tf.run_transform(repo, "broken.py", "data/raw/s.jsonl")

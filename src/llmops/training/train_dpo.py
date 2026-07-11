@@ -18,6 +18,7 @@ Shares the engine / quantization / attention / PEFT / optimizer knob surface wit
 - sync_ref_model + precompute_ref_log_probs (memory tradeoffs)
 - use_liger_kernel
 """
+
 from __future__ import annotations
 
 import argparse
@@ -105,7 +106,9 @@ def _validate_dpo_config(cfg: dict[str, Any]) -> None:
             )
 
     # 5. aot loss types don't work with use_weighting=true
-    has_aot = any(lt in ("aot", "aot_unpaired") for lt in (loss_type if is_multi_loss else [loss_type]))
+    has_aot = any(
+        lt in ("aot", "aot_unpaired") for lt in (loss_type if is_multi_loss else [loss_type])
+    )
     if has_aot and dpo_cfg.get("use_weighting"):
         raise ConfigValidationError(
             "dpo.loss_type 'aot'/'aot_unpaired' is incompatible with dpo.use_weighting=true. "
@@ -131,11 +134,7 @@ def _validate_dpo_config(cfg: dict[str, Any]) -> None:
     # 8. max_length must be > max_prompt_length (if both set)
     max_length = data_cfg.get("max_length")
     max_prompt_length = data_cfg.get("max_prompt_length")
-    if (
-        max_length is not None
-        and max_prompt_length is not None
-        and max_prompt_length >= max_length
-    ):
+    if max_length is not None and max_prompt_length is not None and max_prompt_length >= max_length:
         raise ConfigValidationError(
             f"data.max_prompt_length ({max_prompt_length}) must be strictly less than "
             f"data.max_length ({max_length}). The completion needs room to fit."
@@ -195,9 +194,7 @@ def _load_pref_dataset(path: str | Path, *, limit: int | None = None) -> Any:
     for r in read_jsonl(path):
         if not all(k in r for k in ("prompt", "chosen", "rejected")):
             continue
-        rows.append(
-            {"prompt": r["prompt"], "chosen": r["chosen"], "rejected": r["rejected"]}
-        )
+        rows.append({"prompt": r["prompt"], "chosen": r["chosen"], "rejected": r["rejected"]})
     if limit is not None:
         rows = rows[:limit]
     return Dataset.from_list(rows)
@@ -207,9 +204,21 @@ def _load_pref_dataset(path: str | Path, *, limit: int | None = None) -> Any:
 # DPOConfig builder
 # ---------------------------------------------------------------------------
 _DPO_LOSS_TYPES = {
-    "sigmoid", "hinge", "ipo", "exo_pair", "nca_pair", "robust", "bco_pair",
-    "sppo_hard", "aot", "aot_unpaired", "apo_zero", "apo_down", "discopop",
-    "sft", "sigmoid_norm",
+    "sigmoid",
+    "hinge",
+    "ipo",
+    "exo_pair",
+    "nca_pair",
+    "robust",
+    "bco_pair",
+    "sppo_hard",
+    "aot",
+    "aot_unpaired",
+    "apo_zero",
+    "apo_down",
+    "discopop",
+    "sft",
+    "sigmoid_norm",
 }
 
 
@@ -253,9 +262,7 @@ def _build_dpo_args(cfg: dict[str, Any], output_dir: Path) -> Any:
     if isinstance(loss_type, list):
         for lt in loss_type:
             if lt not in _DPO_LOSS_TYPES:
-                raise ValueError(
-                    f"Unknown DPO loss_type {lt!r}. Valid: {sorted(_DPO_LOSS_TYPES)}"
-                )
+                raise ValueError(f"Unknown DPO loss_type {lt!r}. Valid: {sorted(_DPO_LOSS_TYPES)}")
     else:
         if loss_type not in _DPO_LOSS_TYPES:
             raise ValueError(
@@ -359,7 +366,9 @@ def train(cfg: dict[str, Any], *, smoke_test: bool = False) -> Path:
                 "config_hash": config_h,
                 "loader": loader,
                 "attn_impl": model_cfg.get("attn_impl", "sdpa"),
-                "peft_method": (lora_cfg.get("method") or "lora") if lora_cfg.get("enabled", True) else "full",
+                "peft_method": (lora_cfg.get("method") or "lora")
+                if lora_cfg.get("enabled", True)
+                else "full",
                 "dpo_loss": str(cfg.get("dpo", {}).get("loss_type", "sigmoid")),
                 "git_sha": identity.get("git_sha") or "n/a",
                 "platform": identity.get("platform"),
@@ -375,8 +384,7 @@ def train(cfg: dict[str, Any], *, smoke_test: bool = False) -> Path:
             smoke_test=smoke_test,
             base_model=model_cfg["base_model"],
             peft_method=(
-                (lora_cfg.get("method") or "lora")
-                if lora_cfg.get("enabled", True) else "full"
+                (lora_cfg.get("method") or "lora") if lora_cfg.get("enabled", True) else "full"
             ),
         )
         trainer = DPOTrainer(
@@ -392,8 +400,7 @@ def train(cfg: dict[str, Any], *, smoke_test: bool = False) -> Path:
         try:
             trainer.train()
         except BaseException as exc:
-            metrics_cb.mark_failed(
-                f"{type(exc).__name__}: {exc}", state=trainer.state)
+            metrics_cb.mark_failed(f"{type(exc).__name__}: {exc}", state=trainer.state)
             raise
         trainer.save_model(str(output_dir))
         tokenizer.save_pretrained(str(output_dir))

@@ -30,8 +30,13 @@ def test_redacting_formatter_redacts():
 def test_redacting_formatter_passthrough_when_off():
     fmt = RedactingJsonFormatter(redact=False)
     record = logging.LogRecord(
-        name="x", level=logging.INFO, pathname=__file__, lineno=1,
-        msg="ok", args=None, exc_info=None,
+        name="x",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=1,
+        msg="ok",
+        args=None,
+        exc_info=None,
     )
     record.prompt = "secret"
     out = json.loads(fmt.format(record))

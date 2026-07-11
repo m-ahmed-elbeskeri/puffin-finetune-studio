@@ -9,6 +9,7 @@ backend-agnostic. Three implementations ship:
 - `VLLMBackend`: vLLM AsyncLLMEngine. Falls back to ImportError-raising stub
   on platforms (e.g. Windows) where vLLM is not installable.
 """
+
 from __future__ import annotations
 
 import re
@@ -222,8 +223,7 @@ class VLLMBackend:
             from vllm import LLM  # type: ignore
         except ImportError as exc:  # pragma: no cover
             raise ProviderNotAvailableError(
-                "vllm is not installed. Install puffin-finetune-studio[serve-vllm] "
-                "(Linux only)."
+                "vllm is not installed. Install puffin-finetune-studio[serve-vllm] (Linux only)."
             ) from exc
         self._llm = LLM(
             model=self.model_id,
@@ -286,14 +286,18 @@ def build_backend(deploy_cfg: dict[str, Any]) -> Backend:
         return TransformersBackend(
             model_id=server["model_id"],
             adapter_path=server.get("adapter_path"),
-            chat_template_version=server.get("chat_template_version", DEFAULT_CHAT_TEMPLATE_VERSION),
+            chat_template_version=server.get(
+                "chat_template_version", DEFAULT_CHAT_TEMPLATE_VERSION
+            ),
             device=server.get("device"),
             quantization=server.get("quantization"),
         )
     if backend == "vllm":
         return VLLMBackend(
             model_id=server["model_id"],
-            chat_template_version=server.get("chat_template_version", DEFAULT_CHAT_TEMPLATE_VERSION),
+            chat_template_version=server.get(
+                "chat_template_version", DEFAULT_CHAT_TEMPLATE_VERSION
+            ),
             tensor_parallel_size=int(server.get("tensor_parallel_size", 1)),
             gpu_memory_utilization=float(server.get("gpu_memory_utilization", 0.9)),
         )

@@ -1,21 +1,27 @@
 """Deploy studio REST: config defaults + the dangerous push/promote gate."""
+
 from __future__ import annotations
 
 from pathlib import Path
 
 import pytest
-from starlette.testclient import TestClient
-
 from copilot.backend import deploy_ops
 from copilot.backend.app import create_app
 from copilot.backend.settings import Settings
+from starlette.testclient import TestClient
 
 
 def _client(repo: Path, *, dangerous: bool) -> TestClient:
-    return TestClient(create_app(settings=Settings(
-        anthropic_api_key="", repo_root=repo,
-        db_path=repo / "artifacts" / "copilot" / "threads.sqlite3",
-        enable_dangerous_tools=dangerous)))
+    return TestClient(
+        create_app(
+            settings=Settings(
+                anthropic_api_key="",
+                repo_root=repo,
+                db_path=repo / "artifacts" / "copilot" / "threads.sqlite3",
+                enable_dangerous_tools=dangerous,
+            )
+        )
+    )
 
 
 def test_deploy_config_defaults(repo: Path) -> None:
@@ -28,7 +34,8 @@ def test_deploy_config_defaults(repo: Path) -> None:
 
 def test_deploy_config_reads_yaml(repo: Path) -> None:
     (repo / "configs" / "deploy.yaml").write_text(
-        "model:\n  name: support-bot\n  alias: production\n", encoding="utf-8")
+        "model:\n  name: support-bot\n  alias: production\n", encoding="utf-8"
+    )
     with _client(repo, dangerous=False) as client:
         body = client.get("/api/deploy/config").json()
         assert body["name"] == "support-bot"
@@ -39,16 +46,16 @@ def test_push_and_promote_blocked_when_not_dangerous(repo: Path) -> None:
     with _client(repo, dangerous=False) as client:
         push = client.post("/api/deploy/push", json={"name": "m", "alias": "staging"}).json()
         assert push["kind"] == "error" and "disabled" in push["message"].lower()
-        prom = client.post("/api/deploy/promote",
-                           json={"name": "m", "version": "1", "alias": "production"}).json()
+        prom = client.post(
+            "/api/deploy/promote", json={"name": "m", "version": "1", "alias": "production"}
+        ).json()
         assert prom["kind"] == "error" and "disabled" in prom["message"].lower()
 
 
 def test_render_k8s_manifest(repo: Path) -> None:
     # Rendering is not a dangerous action; it just produces YAML.
     with _client(repo, dangerous=False) as client:
-        r = client.post("/api/deploy/k8s", json={
-            "replicas": 3, "namespace": "puffin", "gpu": True})
+        r = client.post("/api/deploy/k8s", json={"replicas": 3, "namespace": "puffin", "gpu": True})
         assert r.status_code == 200
         body = r.json()
         assert body["kind"] == "k8s_manifest"
@@ -73,13 +80,21 @@ def test_deploy_build_plan_rejects_shell_injection(repo: Path) -> None:
 
 def test_deploy_run_locked_and_validated(repo: Path) -> None:
     with _client(repo, dangerous=False) as client:
-        assert client.post("/api/deploy/run",
-                           json={"target": "docker", "settings": {}}).status_code == 403
+        assert (
+            client.post("/api/deploy/run", json={"target": "docker", "settings": {}}).status_code
+            == 403
+        )
     with _client(repo, dangerous=True) as client:
-        assert client.post("/api/deploy/run",
-                           json={"target": "nope", "settings": {}}).status_code == 400
-        assert client.post("/api/deploy/run", json={
-            "target": "docker", "settings": {"backend": "evil"}}).status_code == 400
+        assert (
+            client.post("/api/deploy/run", json={"target": "nope", "settings": {}}).status_code
+            == 400
+        )
+        assert (
+            client.post(
+                "/api/deploy/run", json={"target": "docker", "settings": {"backend": "evil"}}
+            ).status_code
+            == 400
+        )
 
 
 def test_deploy_status_and_log_absent(repo: Path) -> None:

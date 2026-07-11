@@ -1,4 +1,5 @@
 """Experiment tracking abstraction: MLflow with a no-op fallback."""
+
 from __future__ import annotations
 
 import os
@@ -62,9 +63,7 @@ class Tracker:
         nested: bool = False,
     ) -> Iterator[Any]:
         if self._mlflow is not None:
-            with self._mlflow.start_run(
-                run_name=run_name, tags=tags or {}, nested=nested
-            ) as run:
+            with self._mlflow.start_run(run_name=run_name, tags=tags or {}, nested=nested) as run:
                 yield run
         else:
             yield _NoOpRun()

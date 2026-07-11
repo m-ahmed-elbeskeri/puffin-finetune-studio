@@ -1,4 +1,5 @@
 """Training Studio — recipe/knob catalog, materialization, REST + tools."""
+
 from __future__ import annotations
 
 import asyncio
@@ -7,8 +8,6 @@ from typing import Any
 
 import pytest
 import yaml
-from starlette.testclient import TestClient
-
 from copilot.backend.app import create_app
 from copilot.backend.settings import Settings
 from copilot.backend.tools import ToolContext, registry
@@ -26,13 +25,17 @@ from copilot.backend.training_studio import (
     studio_catalog,
     validate_overrides,
 )
+from starlette.testclient import TestClient
 
 
 def test_custom_recipe_save_load_launch_delete(repo: Path) -> None:
     rec = save_custom_recipe(
-        repo, name="My QLoRA", method="sft",
+        repo,
+        name="My QLoRA",
+        method="sft",
         overrides={"lora.r": 48, "training.epochs": 4},
-        description="my go-to settings")
+        description="my go-to settings",
+    )
     assert rec["category"] == "Your recipes"
     assert rec["id"] == "custom-sft-my-qlora"
 
@@ -51,8 +54,7 @@ def test_custom_recipe_save_load_launch_delete(repo: Path) -> None:
 
 def test_custom_recipe_rejects_bad_overrides(repo: Path) -> None:
     with pytest.raises(StudioError):
-        save_custom_recipe(repo, name="bad", method="sft",
-                           overrides={"not.a.knob": 1})
+        save_custom_recipe(repo, name="bad", method="sft", overrides={"not.a.knob": 1})
     with pytest.raises(StudioError):
         save_custom_recipe(repo, name="", method="sft", overrides={})
 
@@ -67,8 +69,12 @@ def test_catalog_exposes_cloud_targets(repo: Path) -> None:
 
 def test_all_trl_methods_registered() -> None:
     from copilot.backend.tools.train import (
-        METHOD_ADAPTER, METHOD_CONFIG, METHOD_MODULE, _adapter_rel,
+        METHOD_ADAPTER,
+        METHOD_CONFIG,
+        METHOD_MODULE,
+        _adapter_rel,
     )
+
     methods = {"sft", "dpo", "kto", "reward", "grpo", "rloo"}
     assert set(BASE_CONFIG) == methods
     assert set(METHOD_MODULE) == methods
@@ -87,8 +93,10 @@ def test_all_trl_methods_registered() -> None:
 
 def test_new_methods_materialize(repo: Path) -> None:
     # Give the fixture a base config for each new method, then materialize.
-    base = ("model:\n  base_model: hf/test\ntraining:\n  epochs: 1\n"
-            "data:\n  train_path: data/processed/x.jsonl\n")
+    base = (
+        "model:\n  base_model: hf/test\ntraining:\n  epochs: 1\n"
+        "data:\n  train_path: data/processed/x.jsonl\n"
+    )
     for m in ("kto", "reward", "grpo", "rloo"):
         (repo / "configs" / f"train_{m}.yaml").write_text(base, encoding="utf-8")
         _rel, text = materialize(repo, method=m, overrides={}, write=False)
@@ -99,6 +107,7 @@ def test_cloud_submit_tokens_match_declared_fields() -> None:
     """Every {token} in a submit template must be `config` or a declared field
     key, so the /train form can fill it in — no orphan placeholders."""
     import re
+
     for t in CLOUD_TARGETS:
         if t["kind"] == "local":
             continue
@@ -116,6 +125,7 @@ def test_cloud_submit_tokens_match_declared_fields() -> None:
 # ---------------------------------------------------------------------------
 def test_recipe_catalog_is_self_consistent() -> None:
     from copilot.backend.training_studio import RECIPE_CATEGORIES
+
     ids = [r["id"] for r in RECIPES]
     assert len(ids) == len(set(ids))
     for r in RECIPES:
@@ -147,11 +157,10 @@ def test_knob_catalog_is_self_consistent() -> None:
         if "option_help" in k:
             assert k["type"] == "select", f"{k['path']} option_help needs a select"
             assert set(k["option_help"]) <= set(k["options"]), (
-                f"{k['path']} option_help has keys not in options")
+                f"{k['path']} option_help has keys not in options"
+            )
     # The default "essentials" view should be small and non-scary.
-    essential_sft = [
-        k for k in KNOBS if k["essential"] and "sft" in k["methods"]
-    ]
+    essential_sft = [k for k in KNOBS if k["essential"] and "sft" in k["methods"]]
     assert 3 <= len(essential_sft) <= 10
 
 
@@ -184,7 +193,8 @@ def test_validate_overrides_translates_virtual_selects() -> None:
 # ---------------------------------------------------------------------------
 def test_materialize_applies_overrides_and_writes(repo: Path) -> None:
     rel, text = materialize(
-        repo, method="sft",
+        repo,
+        method="sft",
         overrides={
             "lora.r": 64,
             "training.learning_rate": 5e-5,
@@ -206,12 +216,14 @@ def test_materialize_applies_overrides_and_writes(repo: Path) -> None:
 
 def test_materialize_user_overrides_beat_recipe(repo: Path) -> None:
     _, text = materialize(
-        repo, method="sft", recipe_id="style-tune",
+        repo,
+        method="sft",
+        recipe_id="style-tune",
         overrides={"training.epochs": 7},
     )
     cfg = yaml.safe_load(text)
-    assert cfg["training"]["epochs"] == 7          # user wins
-    assert cfg["lora"]["r"] == 16                  # recipe still applied
+    assert cfg["training"]["epochs"] == 7  # user wins
+    assert cfg["lora"]["r"] == 16  # recipe still applied
     assert cfg["training"]["learning_rate"] == 1e-4
 
 
@@ -253,15 +265,15 @@ async def test_studio_recipes_tool(ctx: ToolContext) -> None:
 @pytest.mark.asyncio
 async def test_studio_launch_tool_is_gated(repo: Path) -> None:
     ctx = ToolContext(repo_root=repo, enable_dangerous=False)
-    out = await registry.invoke(
-        "train_studio_launch", {"recipe": "smoke-test"}, ctx)
+    out = await registry.invoke("train_studio_launch", {"recipe": "smoke-test"}, ctx)
     assert out["kind"] == "error"
     assert "disabled" in out["message"].lower()
 
 
 @pytest.mark.asyncio
 async def test_studio_launch_tool_materializes_and_starts(
-    ctx: ToolContext, monkeypatch: pytest.MonkeyPatch,
+    ctx: ToolContext,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     class _FakeProc:
         pid = 777
@@ -271,26 +283,25 @@ async def test_studio_launch_tool_materializes_and_starts(
 
     monkeypatch.setattr(asyncio, "create_subprocess_exec", fake_exec)
     # The test box has no trl/peft; skip the real dependency preflight.
-    monkeypatch.setattr(
-        "copilot.backend.tools.train._missing_training_deps", lambda: [])
+    monkeypatch.setattr("copilot.backend.tools.train._missing_training_deps", lambda: [])
     out = await registry.invoke(
         "train_studio_launch",
         {"recipe": "style-tune", "overrides": {"lora.r": 24}, "smoke": True},
-        ctx)
+        ctx,
+    )
     assert out["kind"] == "train_started"
     assert out["pid"] == 777
     assert out["config_path"] == "configs/train_studio.yaml"
     cfg = yaml.safe_load(
-        (ctx.repo_root / "configs" / "train_studio.yaml")
-        .read_text(encoding="utf-8"))
-    assert cfg["lora"]["r"] == 24                       # user override wins
-    assert cfg["training"]["learning_rate"] == 1e-4     # recipe applied
+        (ctx.repo_root / "configs" / "train_studio.yaml").read_text(encoding="utf-8")
+    )
+    assert cfg["lora"]["r"] == 24  # user override wins
+    assert cfg["training"]["learning_rate"] == 1e-4  # recipe applied
 
 
 @pytest.mark.asyncio
 async def test_studio_launch_tool_rejects_bad_input(ctx: ToolContext) -> None:
-    out = await registry.invoke(
-        "train_studio_launch", {"overrides": {"evil.path": 1}}, ctx)
+    out = await registry.invoke("train_studio_launch", {"overrides": {"evil.path": 1}}, ctx)
     assert out["kind"] == "error"
     assert "unknown knob" in out["message"]
 
@@ -312,10 +323,14 @@ def test_studio_endpoints_roundtrip(repo: Path) -> None:
         assert {k["path"] for k in cat["knobs"]} == set(KNOBS_BY_PATH)
         assert "gpu" in cat
 
-        preview = client.post("/api/train/preview", json={
-            "method": "sft", "recipe": "domain-adapt",
-            "overrides": {"lora.r": 48},
-        })
+        preview = client.post(
+            "/api/train/preview",
+            json={
+                "method": "sft",
+                "recipe": "domain-adapt",
+                "overrides": {"lora.r": 48},
+            },
+        )
         assert preview.status_code == 200
         cfg = yaml.safe_load(preview.json()["yaml"])
         assert cfg["lora"]["r"] == 48
@@ -323,9 +338,13 @@ def test_studio_endpoints_roundtrip(repo: Path) -> None:
         # Preview must NOT write the studio config.
         assert not (repo / "configs" / "train_studio.yaml").exists()
 
-        bad = client.post("/api/train/preview", json={
-            "method": "sft", "overrides": {"nope.nope": 1},
-        })
+        bad = client.post(
+            "/api/train/preview",
+            json={
+                "method": "sft",
+                "overrides": {"nope.nope": 1},
+            },
+        )
         assert bad.status_code == 400
         assert "unknown knob" in bad.json()["detail"]
 
@@ -333,9 +352,14 @@ def test_studio_endpoints_roundtrip(repo: Path) -> None:
 def test_launch_respects_dangerous_gate(repo: Path) -> None:
     app = create_app(settings=_make_settings(repo, dangerous=False))
     with TestClient(app) as client:
-        r = client.post("/api/train/launch", json={
-            "method": "sft", "smoke": True, "recipe": "smoke-test",
-        })
+        r = client.post(
+            "/api/train/launch",
+            json={
+                "method": "sft",
+                "smoke": True,
+                "recipe": "smoke-test",
+            },
+        )
         assert r.status_code == 200
         body = r.json()
         # The config materializes, but the registry gate blocks the spawn.
@@ -345,7 +369,8 @@ def test_launch_respects_dangerous_gate(repo: Path) -> None:
 
 
 def test_launch_spawns_training_when_enabled(
-    repo: Path, monkeypatch: pytest.MonkeyPatch,
+    repo: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     spawned: dict[str, Any] = {}
 
@@ -357,15 +382,18 @@ def test_launch_spawns_training_when_enabled(
         return _FakeProc()
 
     monkeypatch.setattr(asyncio, "create_subprocess_exec", fake_exec)
-    monkeypatch.setattr(
-        "copilot.backend.tools.train._missing_training_deps", lambda: [])
+    monkeypatch.setattr("copilot.backend.tools.train._missing_training_deps", lambda: [])
 
     app = create_app(settings=_make_settings(repo, dangerous=True))
     with TestClient(app) as client:
-        r = client.post("/api/train/launch", json={
-            "method": "sft", "smoke": True,
-            "overrides": {"training.epochs": 2},
-        })
+        r = client.post(
+            "/api/train/launch",
+            json={
+                "method": "sft",
+                "smoke": True,
+                "overrides": {"training.epochs": 2},
+            },
+        )
         assert r.status_code == 200
         body = r.json()
         assert body["launch"]["kind"] == "train_started"
@@ -375,6 +403,5 @@ def test_launch_spawns_training_when_enabled(
         # The spawned command points at the materialized studio config.
         assert any("train_studio.yaml" in a for a in spawned["args"])
         assert "--smoke-test" in spawned["args"]
-        cfg = yaml.safe_load((repo / "configs" / "train_studio.yaml")
-                             .read_text(encoding="utf-8"))
+        cfg = yaml.safe_load((repo / "configs" / "train_studio.yaml").read_text(encoding="utf-8"))
         assert cfg["training"]["epochs"] == 2

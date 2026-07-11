@@ -7,6 +7,7 @@ CLI:
         --alias candidate \
         --metrics artifacts/eval/metrics.json
 """
+
 from __future__ import annotations
 
 import argparse

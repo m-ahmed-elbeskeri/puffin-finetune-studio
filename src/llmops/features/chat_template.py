@@ -4,6 +4,7 @@ Pinning the chat template version is critical: training applies the template
 to build supervised text, and serving applies the same template to build the
 input. A version mismatch silently breaks fine-tuning quality.
 """
+
 from __future__ import annotations
 
 from llmops.features.schemas import Message, Role

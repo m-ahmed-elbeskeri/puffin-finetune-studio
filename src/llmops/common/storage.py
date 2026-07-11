@@ -3,6 +3,7 @@
 Backends are loaded lazily so that local-only users do not need the
 google-cloud-storage / boto3 / azure-storage-blob extras installed.
 """
+
 from __future__ import annotations
 
 import os

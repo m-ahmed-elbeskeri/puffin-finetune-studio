@@ -13,6 +13,7 @@ Run:
 or
     uvicorn llmops.serving.app:create_app --factory --host 0.0.0.0 --port 8080
 """
+
 from __future__ import annotations
 
 import argparse
@@ -205,7 +206,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run puffin serving app.")
     parser.add_argument("--config", default="configs/deploy.yaml")
     parser.add_argument("--host", default=os.environ.get("PUFFIN_SERVE_HOST", "0.0.0.0"))
-    parser.add_argument("--port", type=int, default=int(os.environ.get("PUFFIN_SERVE_PORT", "8080")))
+    parser.add_argument(
+        "--port", type=int, default=int(os.environ.get("PUFFIN_SERVE_PORT", "8080"))
+    )
     args = parser.parse_args(argv)
 
     import uvicorn

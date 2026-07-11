@@ -33,6 +33,9 @@ jobs:
         uses: astral-sh/setup-uv@v3
         with:
           enable-cache: true
+          # No uv.lock in this project; key the cache off pyproject so
+          # setup-uv doesn't error on the default **/uv.lock glob.
+          cache-dependency-glob: "pyproject.toml"
 
       - name: Create venv (Python 3.11)
         run: uv venv --python 3.11
@@ -71,6 +74,9 @@ jobs:
       - uses: astral-sh/setup-uv@v3
       - run: uv venv --python 3.11
       - run: uv pip install -e ".[data,eval]"
+      # The template ships no data by design; seed the reference fixture so the
+      # pipeline has something to ingest.
+      - run: mkdir -p data/raw && cp tests/fixtures/example.jsonl data/raw/example.jsonl
       - run: uv run python -m llmops.data.ingest --config configs/data.yaml
       - run: uv run python -m llmops.data.validate --config configs/data.yaml
       - run: uv run python -m llmops.data.redact_pii --config configs/data.yaml

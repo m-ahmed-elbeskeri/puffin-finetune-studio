@@ -5,9 +5,7 @@ import json
 from typing import Any
 
 import pytest
-
 from copilot.backend.providers.codex_cli import CodexCliProvider
-
 
 pytestmark = pytest.mark.asyncio
 
@@ -29,10 +27,7 @@ class _FakeStdin:
 
 class _FakeStdout:
     def __init__(self, events: list[dict[str, Any]]) -> None:
-        self.lines = [
-            (json.dumps(evt) + "\n").encode("utf-8")
-            for evt in events
-        ]
+        self.lines = [(json.dumps(evt) + "\n").encode("utf-8") for evt in events]
 
     async def readline(self) -> bytes:
         if not self.lines:
@@ -58,13 +53,16 @@ class _FakeProc:
 
 async def _collect(provider: CodexCliProvider) -> list[dict[str, Any]]:
     return [
-        evt async for evt in provider.stream_turn(
+        evt
+        async for evt in provider.stream_turn(
             model="default",
             system=None,
-            messages=[{
-                "role": "user",
-                "content": [{"type": "text", "text": "what directory?"}],
-            }],
+            messages=[
+                {
+                    "role": "user",
+                    "content": [{"type": "text", "text": "what directory?"}],
+                }
+            ],
             tools=[],
             max_tokens=100,
         )
@@ -115,7 +113,7 @@ async def test_codex_cli_streams_command_execution_as_provider_resolved_tool(
     ]
     proc = _FakeProc(events)
 
-    async def fake_exec(*args, **kwargs):  # noqa: ANN002, ANN003
+    async def fake_exec(*args, **kwargs):
         return proc
 
     monkeypatch.setattr(asyncio, "create_subprocess_exec", fake_exec)
@@ -186,7 +184,7 @@ async def test_codex_cli_ignores_local_agent_role_warnings(
         },
     ]
 
-    async def fake_exec(*args, **kwargs):  # noqa: ANN002, ANN003
+    async def fake_exec(*args, **kwargs):
         return _FakeProc(events)
 
     monkeypatch.setattr(asyncio, "create_subprocess_exec", fake_exec)

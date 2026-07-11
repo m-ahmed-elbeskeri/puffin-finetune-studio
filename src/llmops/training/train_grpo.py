@@ -8,6 +8,7 @@ GRPOTrainer. A built-in length/keyword reward runs out of the box; point
 
     python -m llmops.training.train_grpo --config configs/train_grpo.yaml
 """
+
 from __future__ import annotations
 
 import argparse
@@ -21,11 +22,17 @@ from llmops.common.logging import get_logger
 from llmops.data.io_utils import read_jsonl
 from llmops.features.chat_template import DEFAULT_CHAT_TEMPLATE_VERSION, get_chat_template
 from llmops.training._trl_shared import (
-    apply_smoke, common_config_kwargs, default_reward_funcs, run_and_save,
+    apply_smoke,
+    common_config_kwargs,
+    default_reward_funcs,
+    run_and_save,
 )
 from llmops.training.train_sft_lora import (
-    _build_peft_config, _load_model_and_tokenizer, _print_effective_config,
-    _validate_config, _wrap_with_peft,
+    _build_peft_config,
+    _load_model_and_tokenizer,
+    _print_effective_config,
+    _validate_config,
+    _wrap_with_peft,
 )
 
 log = get_logger(__name__)
@@ -33,9 +40,11 @@ log = get_logger(__name__)
 
 def _smoke_overrides(cfg: dict[str, Any]) -> dict[str, Any]:
     # num_generations must divide the effective batch; 2 x 2 works on CPU.
-    cfg = apply_smoke(cfg, "artifacts/grpo-smoke",
-                      extra_training={"per_device_train_batch_size": 2,
-                                      "gradient_accumulation_steps": 1})
+    cfg = apply_smoke(
+        cfg,
+        "artifacts/grpo-smoke",
+        extra_training={"per_device_train_batch_size": 2, "gradient_accumulation_steps": 1},
+    )
     g = cfg.setdefault("grpo", {})
     g["num_generations"] = 2
     g["max_completion_length"] = 16  # keep CPU generation fast in smoke
@@ -114,14 +123,25 @@ def train(cfg: dict[str, Any], *, smoke_test: bool = False) -> Path:
 
     def make_trainer(callbacks: list[Any], tok_kwarg: str) -> Any:
         return GRPOTrainer(
-            model=model, reward_funcs=reward_funcs, args=args,
-            train_dataset=train_ds, peft_config=trainer_peft,
-            callbacks=callbacks, **{tok_kwarg: tokenizer})
+            model=model,
+            reward_funcs=reward_funcs,
+            args=args,
+            train_dataset=train_ds,
+            peft_config=trainer_peft,
+            callbacks=callbacks,
+            **{tok_kwarg: tokenizer},
+        )
 
     return run_and_save(
-        method="grpo", cfg=cfg, smoke_test=smoke_test, output_dir=output_dir,
-        tokenizer=tokenizer, base_model=model_cfg["base_model"],
-        peft_method=peft_method, make_trainer=make_trainer)
+        method="grpo",
+        cfg=cfg,
+        smoke_test=smoke_test,
+        output_dir=output_dir,
+        tokenizer=tokenizer,
+        base_model=model_cfg["base_model"],
+        peft_method=peft_method,
+        make_trainer=make_trainer,
+    )
 
 
 def main(argv: list[str] | None = None) -> int:

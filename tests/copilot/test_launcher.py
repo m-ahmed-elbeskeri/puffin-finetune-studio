@@ -3,6 +3,7 @@
 These cover the pure, deterministic helpers (port selection, readiness polling,
 arg defaulting, doctor) without spawning real servers.
 """
+
 from __future__ import annotations
 
 import socket
@@ -62,8 +63,7 @@ def test_wait_until_bails_when_process_dead():
 
     # alive() is False from the start -> we should return immediately, without
     # ever calling check().
-    assert launcher._wait_until(
-        check, timeout=5.0, interval=0.01, alive=lambda: False) is False
+    assert launcher._wait_until(check, timeout=5.0, interval=0.01, alive=lambda: False) is False
     assert calls["n"] == 0
 
 
@@ -162,8 +162,7 @@ def test_install_shutdown_signals_routes_sigterm(monkeypatch):
     import signal
 
     captured = {}
-    monkeypatch.setattr(signal, "signal",
-                        lambda sig, handler: captured.setdefault(sig, handler))
+    monkeypatch.setattr(signal, "signal", lambda sig, handler: captured.setdefault(sig, handler))
     launcher._install_shutdown_signals()
     assert signal.SIGTERM in captured
     # The handler must convert the signal into a KeyboardInterrupt so cmd_up's
@@ -180,17 +179,22 @@ def _served_app(tmp_path):
     from copilot.backend.settings import Settings
     from starlette.testclient import TestClient
 
-    return TestClient(create_app(settings=Settings(
-        anthropic_api_key="",
-        repo_root=launcher.REPO_ROOT,
-        db_path=tmp_path / "threads.sqlite3",
-        frontend_dist=launcher.STATIC_OUT,
-    )))
+    return TestClient(
+        create_app(
+            settings=Settings(
+                anthropic_api_key="",
+                repo_root=launcher.REPO_ROOT,
+                db_path=tmp_path / "threads.sqlite3",
+                frontend_dist=launcher.STATIC_OUT,
+            )
+        )
+    )
 
 
 @pytest.mark.skipif(
     not (launcher.STATIC_OUT / "dashboard" / "index.html").exists(),
-    reason="static export not built (run `finetune-copilot build`)")
+    reason="static export not built (run `finetune-copilot build`)",
+)
 def test_prod_landing_is_not_error_shell(tmp_path):
     """The page --prod actually opens must be the real dashboard, never Next's
     `__next_error__` shell. This is the regression guard for the root-redirect
@@ -208,8 +212,8 @@ def test_prod_landing_is_not_error_shell(tmp_path):
 
 
 @pytest.mark.skipif(
-    not (launcher.STATIC_OUT / "index.html").exists(),
-    reason="static export not built")
+    not (launcher.STATIC_OUT / "index.html").exists(), reason="static export not built"
+)
 def test_prod_disables_api_docs(tmp_path):
     """With the frontend mounted, FastAPI's Swagger/OpenAPI must be off so it
     neither collides with the app's /docs page nor leaks the schema."""

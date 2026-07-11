@@ -5,6 +5,7 @@ CLI:
         --requests artifacts/serving/requests.jsonl \
         --sample 50 --output artifacts/monitoring/quality.json
 """
+
 from __future__ import annotations
 
 import argparse
@@ -80,7 +81,7 @@ def run(
                 rubric_prompt = judge_cfg.get(
                     "rubric_prompt",
                     "Score the response 0..1 for helpfulness, correctness, and safety. "
-                    "Reply with JSON: {\"score\": <0..1>}.",
+                    'Reply with JSON: {"score": <0..1>}.',
                 )
                 s = llm_judge_score(rec.get("output_text", ""), rubric_prompt, generator)
                 scores.append(s["score"])

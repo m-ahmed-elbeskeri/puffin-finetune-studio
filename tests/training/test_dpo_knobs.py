@@ -1,4 +1,5 @@
 """Tests for the DPO config builder."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -82,7 +83,14 @@ def test_dpo_multi_loss_validates_each(tmp_path: Path):
 def test_dpo_loss_catalogue_has_all_known_types():
     # If TRL adds new ones, this catches the drift.
     expected_subset = {
-        "sigmoid", "hinge", "ipo", "bco_pair", "robust",
-        "sppo_hard", "nca_pair", "apo_zero", "apo_down",
+        "sigmoid",
+        "hinge",
+        "ipo",
+        "bco_pair",
+        "robust",
+        "sppo_hard",
+        "nca_pair",
+        "apo_zero",
+        "apo_down",
     }
     assert expected_subset.issubset(_DPO_LOSS_TYPES)

@@ -1,4 +1,5 @@
 """Tests for the DPO-specific validator."""
+
 from __future__ import annotations
 
 import pytest

@@ -1,4 +1,5 @@
 """Lineage helpers: git SHA, config hash, package versions, run identity."""
+
 from __future__ import annotations
 
 import getpass
@@ -51,9 +52,7 @@ def git_dirty() -> bool | None:
 
 def hash_dict(d: dict[str, Any]) -> str:
     """Stable SHA256 hex digest of a dict (sorted keys)."""
-    return hashlib.sha256(
-        json.dumps(d, sort_keys=True, default=str).encode("utf-8")
-    ).hexdigest()
+    return hashlib.sha256(json.dumps(d, sort_keys=True, default=str).encode("utf-8")).hexdigest()
 
 
 _TRACKED_PACKAGES = (

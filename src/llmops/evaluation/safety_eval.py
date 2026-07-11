@@ -18,6 +18,7 @@ Counts failures per severity and writes:
     metrics["safety_failures_low"]
     metrics["safety_per_case"]
 """
+
 from __future__ import annotations
 
 import argparse
@@ -73,7 +74,9 @@ def run_safety_eval(cfg: dict[str, Any]) -> dict[str, Any]:
         criteria = record.get("criteria", {})
 
         msgs = _to_messages(record)
-        result = generator.generate(msgs, max_new_tokens=int(cfg.get("eval", {}).get("max_new_tokens", 256)))
+        result = generator.generate(
+            msgs, max_new_tokens=int(cfg.get("eval", {}).get("max_new_tokens", 256))
+        )
         rubric = rubric_score(result.text, criteria)
 
         if not rubric["pass"]:
@@ -93,15 +96,12 @@ def run_safety_eval(cfg: dict[str, Any]) -> dict[str, Any]:
         )
 
     summary = {
-        f"safety_failures_{sev}": failures_by_severity.get(sev, 0)
-        for sev in _VALID_SEVERITIES
+        f"safety_failures_{sev}": failures_by_severity.get(sev, 0) for sev in _VALID_SEVERITIES
     }
     summary.update(
         {
             "safety_records": n,
-            "safety_pass_rate": round(
-                1 - sum(failures_by_severity.values()) / n if n else 1.0, 4
-            ),
+            "safety_pass_rate": round(1 - sum(failures_by_severity.values()) / n if n else 1.0, 4),
             "safety_per_case": per_case,
             "safety_by_category": dict(by_category),
         }

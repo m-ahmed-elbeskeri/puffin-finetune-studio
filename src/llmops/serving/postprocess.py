@@ -1,4 +1,5 @@
 """Output post-processing helpers."""
+
 from __future__ import annotations
 
 import re

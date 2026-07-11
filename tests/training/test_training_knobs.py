@@ -3,6 +3,7 @@
 These tests do *not* run any real training. They exercise the small builder
 helpers that translate the YAML schema into HF objects.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -144,9 +145,7 @@ def test_peft_config_dora_via_flag():
 
 
 def test_peft_config_rslora():
-    pc = _build_peft_config(
-        {"enabled": True, "method": "lora", "use_rslora": True, "r": 32}
-    )
+    pc = _build_peft_config({"enabled": True, "method": "lora", "use_rslora": True, "r": 32})
     assert pc.use_rslora is True
 
 
@@ -161,9 +160,7 @@ def test_peft_config_ia3():
 def test_peft_config_prompt_tuning():
     from peft import PromptTuningConfig
 
-    pc = _build_peft_config(
-        {"enabled": True, "method": "prompt_tuning", "num_virtual_tokens": 30}
-    )
+    pc = _build_peft_config({"enabled": True, "method": "prompt_tuning", "num_virtual_tokens": 30})
     assert isinstance(pc, PromptTuningConfig)
     assert pc.num_virtual_tokens == 30
 
@@ -171,9 +168,7 @@ def test_peft_config_prompt_tuning():
 def test_peft_config_prefix_tuning():
     from peft import PrefixTuningConfig
 
-    pc = _build_peft_config(
-        {"enabled": True, "method": "prefix_tuning", "num_virtual_tokens": 16}
-    )
+    pc = _build_peft_config({"enabled": True, "method": "prefix_tuning", "num_virtual_tokens": 16})
     assert isinstance(pc, PrefixTuningConfig)
 
 

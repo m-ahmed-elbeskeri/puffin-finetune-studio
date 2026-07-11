@@ -40,13 +40,14 @@ Files written (all in the trainer's `output_dir`):
 The callback never raises into the trainer — every write is wrapped in a
 contextlib.suppress so a flaky filesystem can't kill a run.
 """
+
 from __future__ import annotations
 
 import contextlib
 import json
 import os
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -57,7 +58,7 @@ except ImportError:  # pragma: no cover - trainer always present when used
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="microseconds")
+    return datetime.now(UTC).isoformat(timespec="microseconds")
 
 
 def _atomic_write(path: Path, data: str) -> None:
@@ -77,8 +78,8 @@ def _peak_vram_gb() -> float | None:
         total = 0
         for i in range(torch.cuda.device_count()):
             total += torch.cuda.max_memory_allocated(i)
-        return round(total / (1024 ** 3), 3)
-    except Exception:  # noqa: BLE001
+        return round(total / (1024**3), 3)
+    except Exception:
         return None
 
 
@@ -88,7 +89,7 @@ def _count_params(model: Any) -> tuple[int, int]:
         total = sum(p.numel() for p in model.parameters())
         trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
         return trainable, total
-    except Exception:  # noqa: BLE001
+    except Exception:
         return 0, 0
 
 
@@ -137,7 +138,7 @@ class TrainingMetricsCallback(TrainerCallback):
     # ------------------------------------------------------------------
     # Lifecycle hooks
     # ------------------------------------------------------------------
-    def on_train_begin(self, args, state, control, **kwargs):  # noqa: D401
+    def on_train_begin(self, args, state, control, **kwargs):
         self.output_dir.mkdir(parents=True, exist_ok=True)
         # Truncate the JSONL so each run starts clean.
         with contextlib.suppress(OSError):
@@ -158,7 +159,7 @@ class TrainingMetricsCallback(TrainerCallback):
         )
         return control
 
-    def on_log(self, args, state, control, logs=None, **kwargs):  # noqa: D401
+    def on_log(self, args, state, control, logs=None, **kwargs):
         logs = dict(logs or {})
         if not logs:
             return control
@@ -189,24 +190,22 @@ class TrainingMetricsCallback(TrainerCallback):
             with contextlib.suppress(TypeError, ValueError):
                 self.last_lr = float(row["learning_rate"])
 
-        with contextlib.suppress(OSError):
-            with self.metrics_path.open("a", encoding="utf-8") as fh:
-                fh.write(json.dumps(row, default=str) + "\n")
+        with contextlib.suppress(OSError), self.metrics_path.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(row, default=str) + "\n")
 
         self._write_state(status="running", state=state, error=None)
         return control
 
-    def on_step_end(self, args, state, control, **kwargs):  # noqa: D401
+    def on_step_end(self, args, state, control, **kwargs):
         # Lightweight progress ping so the UI's progress bar updates even
         # between logging_steps boundaries.
         self._write_state(status="running", state=state, error=None)
         return control
 
-    def on_train_end(self, args, state, control, **kwargs):  # noqa: D401
+    def on_train_end(self, args, state, control, **kwargs):
         end_ts = _now_iso()
         duration_s = (
-            round(time.perf_counter() - self.start_perf, 2)
-            if self.start_perf is not None else None
+            round(time.perf_counter() - self.start_perf, 2) if self.start_perf is not None else None
         )
         # Final train loss: prefer the trainer's accumulated history,
         # otherwise fall back to whatever we last saw.
@@ -240,7 +239,9 @@ class TrainingMetricsCallback(TrainerCallback):
 
         # Mark state as completed; UI's Live tab will flip to "no active run".
         self._write_state(
-            status="completed", state=state, error=None,
+            status="completed",
+            state=state,
+            error=None,
             extra={"end_ts": end_ts, "duration_s": duration_s},
         )
         return control
@@ -251,8 +252,7 @@ class TrainingMetricsCallback(TrainerCallback):
     def mark_failed(self, error: str, state: Any | None = None) -> None:
         end_ts = _now_iso()
         duration_s = (
-            round(time.perf_counter() - self.start_perf, 2)
-            if self.start_perf is not None else None
+            round(time.perf_counter() - self.start_perf, 2) if self.start_perf is not None else None
         )
         summary = {
             "status": "failed",

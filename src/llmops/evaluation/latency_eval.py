@@ -3,6 +3,7 @@
 Repeats each prompt N times, computes p50/p95/p99 latency and tokens/sec,
 and estimates cost per 1k requests using a simple per-token price map.
 """
+
 from __future__ import annotations
 
 import argparse

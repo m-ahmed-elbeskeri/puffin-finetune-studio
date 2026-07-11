@@ -1,4 +1,5 @@
 """Verify the request logger does NOT write prompts/outputs by default."""
+
 from __future__ import annotations
 
 import json
@@ -53,12 +54,24 @@ def test_user_hash_is_stable(tmp_path, monkeypatch):
     rl1 = RequestLogger(log_path=tmp_path / "a.jsonl")
     rl2 = RequestLogger(log_path=tmp_path / "b.jsonl")
     rl1.log_request(
-        request_id="r1", model="m", model_version="v1", backend="b",
-        input_tokens=1, output_tokens=1, latency_ms=1, user="alice",
+        request_id="r1",
+        model="m",
+        model_version="v1",
+        backend="b",
+        input_tokens=1,
+        output_tokens=1,
+        latency_ms=1,
+        user="alice",
     )
     rl2.log_request(
-        request_id="r2", model="m", model_version="v1", backend="b",
-        input_tokens=1, output_tokens=1, latency_ms=1, user="alice",
+        request_id="r2",
+        model="m",
+        model_version="v1",
+        backend="b",
+        input_tokens=1,
+        output_tokens=1,
+        latency_ms=1,
+        user="alice",
     )
     a_hash = json.loads((tmp_path / "a.jsonl").read_text())["user_hash"]
     b_hash = json.loads((tmp_path / "b.jsonl").read_text())["user_hash"]

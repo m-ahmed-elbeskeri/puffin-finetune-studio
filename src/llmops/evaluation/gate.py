@@ -6,6 +6,7 @@ line in the report; the process exits 1 if any check fails.
 Returns a dict {"passed": bool, "failures": [str], "report": [str]} for
 programmatic callers; the CLI prints the report and uses sys.exit.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -47,13 +48,17 @@ def apply_gate(metrics: dict[str, Any], gates: dict[str, Any]) -> dict[str, Any]
     checks: list[tuple[str, bool, str]] = []
 
     if "min_task_score" in gates:
-        ok, msg = _check_min("task_score", float(metrics.get("task_score", 0.0)), float(gates["min_task_score"]))
+        ok, msg = _check_min(
+            "task_score", float(metrics.get("task_score", 0.0)), float(gates["min_task_score"])
+        )
         checks.append(("min_task_score", ok, msg))
 
     if "min_improvement_over_baseline" in gates:
         improvement = float(metrics.get("task_improvement_over_baseline", 0.0))
         ok, msg = _check_min(
-            "task_improvement_over_baseline", improvement, float(gates["min_improvement_over_baseline"])
+            "task_improvement_over_baseline",
+            improvement,
+            float(gates["min_improvement_over_baseline"]),
         )
         checks.append(("min_improvement_over_baseline", ok, msg))
 

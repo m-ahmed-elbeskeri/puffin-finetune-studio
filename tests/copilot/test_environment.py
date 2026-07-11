@@ -1,10 +1,10 @@
 """Environment doctor + training-run visibility fixes."""
+
 from __future__ import annotations
 
 import json
 
 import pytest
-
 from copilot.backend import environment as env
 from copilot.backend.tools import train as train_tools
 
@@ -63,13 +63,20 @@ def test_pid_alive_false_for_dead_pid():
 def test_serialise_flips_dead_run_to_failed(tmp_path):
     d = tmp_path / "adapter-smoke"
     d.mkdir()
-    (d / "training_state.json").write_text(json.dumps({
-        "status": "running", "method": "sft", "smoke_test": True,
-        "pid": 2**31 - 1,  # dead
-        "start_ts": "2020-01-01T00:00:00+00:00",
-        "last_update_ts": "2020-01-01T00:00:00+00:00",
-        "current_step": None,
-    }), encoding="utf-8")
+    (d / "training_state.json").write_text(
+        json.dumps(
+            {
+                "status": "running",
+                "method": "sft",
+                "smoke_test": True,
+                "pid": 2**31 - 1,  # dead
+                "start_ts": "2020-01-01T00:00:00+00:00",
+                "last_update_ts": "2020-01-01T00:00:00+00:00",
+                "current_step": None,
+            }
+        ),
+        encoding="utf-8",
+    )
     run = train_tools._serialise_run(d, repo=tmp_path)
     assert run["status"] == "failed"
     assert run["error"] and "exited" in run["error"]
@@ -81,5 +88,6 @@ def test_missing_training_deps_reports_uninstalled():
     missing = train_tools._missing_training_deps()
     # trl is not part of the base install; if it's absent it must be reported.
     import importlib.util
+
     if importlib.util.find_spec("trl") is None:
         assert "trl" in missing

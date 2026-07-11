@@ -11,16 +11,24 @@ from llmops.data.split import _stratified_split, split
 def test_split_ratios_must_sum_to_one(tmp_path):
     src = tmp_path / "in.jsonl"
     src.write_text(
-        json.dumps({"id": "1", "source": "x", "messages": [{"role": "user", "content": "hi"}]}) + "\n"
+        json.dumps({"id": "1", "source": "x", "messages": [{"role": "user", "content": "hi"}]})
+        + "\n"
     )
     cfg = {
         "paths": {
             "deduped": str(src),
             "train": str(tmp_path / "tr.jsonl"),
-            "eval":  str(tmp_path / "ev.jsonl"),
-            "test":  str(tmp_path / "te.jsonl"),
+            "eval": str(tmp_path / "ev.jsonl"),
+            "test": str(tmp_path / "te.jsonl"),
         },
-        "split": {"train": 0.5, "eval": 0.4, "test": 0.4, "seed": 0, "leakage_threshold": 0.99, "leakage_max": 0},
+        "split": {
+            "train": 0.5,
+            "eval": 0.4,
+            "test": 0.4,
+            "seed": 0,
+            "leakage_threshold": 0.99,
+            "leakage_max": 0,
+        },
     }
     with pytest.raises(ValueError, match="sum to 1"):
         split(cfg)
@@ -61,10 +69,17 @@ def test_split_full_pipeline(tmp_path):
         "paths": {
             "deduped": str(src),
             "train": str(tmp_path / "tr.jsonl"),
-            "eval":  str(tmp_path / "ev.jsonl"),
-            "test":  str(tmp_path / "te.jsonl"),
+            "eval": str(tmp_path / "ev.jsonl"),
+            "test": str(tmp_path / "te.jsonl"),
         },
-        "split": {"train": 0.7, "eval": 0.15, "test": 0.15, "seed": 7, "leakage_threshold": 0.99, "leakage_max": 0},
+        "split": {
+            "train": 0.7,
+            "eval": 0.15,
+            "test": 0.15,
+            "seed": 7,
+            "leakage_threshold": 0.99,
+            "leakage_max": 0,
+        },
     }
     out = split(cfg)
     n_train = sum(1 for _ in out["train"].open())
@@ -82,11 +97,19 @@ def test_split_falls_back_to_interim_when_no_dedupe(tmp_path):
     interim.parent.mkdir()
     with interim.open("w", encoding="utf-8") as f:
         for i in range(30):
-            f.write(json.dumps({
-                "id": f"r{i}", "source": "x",
-                "messages": [{"role": "user", "content": f"q{i}"},
-                             {"role": "assistant", "content": f"a{i}"}],
-            }) + "\n")
+            f.write(
+                json.dumps(
+                    {
+                        "id": f"r{i}",
+                        "source": "x",
+                        "messages": [
+                            {"role": "user", "content": f"q{i}"},
+                            {"role": "assistant", "content": f"a{i}"},
+                        ],
+                    }
+                )
+                + "\n"
+            )
     cfg = {
         "paths": {
             # deduped + redacted point at files that do NOT exist
@@ -94,11 +117,17 @@ def test_split_falls_back_to_interim_when_no_dedupe(tmp_path):
             "redacted": str(tmp_path / "interim" / "redacted.jsonl"),
             "interim": str(interim),
             "train": str(tmp_path / "tr.jsonl"),
-            "eval":  str(tmp_path / "ev.jsonl"),
-            "test":  str(tmp_path / "te.jsonl"),
+            "eval": str(tmp_path / "ev.jsonl"),
+            "test": str(tmp_path / "te.jsonl"),
         },
-        "split": {"train": 0.7, "eval": 0.15, "test": 0.15, "seed": 1,
-                  "leakage_threshold": 0.99, "leakage_max": 0},
+        "split": {
+            "train": 0.7,
+            "eval": 0.15,
+            "test": 0.15,
+            "seed": 1,
+            "leakage_threshold": 0.99,
+            "leakage_max": 0,
+        },
     }
     out = split(cfg)
     total = sum(sum(1 for _ in out[k].open()) for k in ("train", "eval", "test"))
@@ -112,8 +141,8 @@ def test_split_clear_error_when_nothing_ingested(tmp_path):
             "redacted": str(tmp_path / "interim" / "redacted.jsonl"),
             "interim": str(tmp_path / "interim" / "all.jsonl"),
             "train": str(tmp_path / "tr.jsonl"),
-            "eval":  str(tmp_path / "ev.jsonl"),
-            "test":  str(tmp_path / "te.jsonl"),
+            "eval": str(tmp_path / "ev.jsonl"),
+            "test": str(tmp_path / "te.jsonl"),
         },
         "split": {"train": 0.7, "eval": 0.15, "test": 0.15, "seed": 1},
     }
@@ -140,10 +169,17 @@ def test_leakage_check_blocks_when_train_test_identical(tmp_path):
         "paths": {
             "deduped": str(src),
             "train": str(tmp_path / "tr.jsonl"),
-            "eval":  str(tmp_path / "ev.jsonl"),
-            "test":  str(tmp_path / "te.jsonl"),
+            "eval": str(tmp_path / "ev.jsonl"),
+            "test": str(tmp_path / "te.jsonl"),
         },
-        "split": {"train": 0.5, "eval": 0.25, "test": 0.25, "seed": 0, "leakage_threshold": 0.5, "leakage_max": 0},
+        "split": {
+            "train": 0.5,
+            "eval": 0.25,
+            "test": 0.25,
+            "seed": 0,
+            "leakage_threshold": 0.5,
+            "leakage_max": 0,
+        },
     }
     # The leakage check requires datasketch — only assert if it's available.
     try:

@@ -1,4 +1,5 @@
 """FastAPI app tests using TestClient."""
+
 from __future__ import annotations
 
 

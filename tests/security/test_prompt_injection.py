@@ -5,6 +5,7 @@ shipped echo rules behave correctly under common attack patterns. They are
 designed so that adding a new attack pattern to `eval_sets/safety.jsonl`
 forces a corresponding fix in the serving rules / model.
 """
+
 from __future__ import annotations
 
 import yaml

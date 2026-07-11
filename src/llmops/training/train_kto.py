@@ -6,6 +6,7 @@ Cheaper to collect than DPO pairs. Wraps TRL's KTOTrainer.
 
     python -m llmops.training.train_kto --config configs/train_kto.yaml
 """
+
 from __future__ import annotations
 
 import argparse
@@ -19,11 +20,16 @@ from llmops.common.logging import get_logger
 from llmops.data.io_utils import read_jsonl
 from llmops.features.chat_template import DEFAULT_CHAT_TEMPLATE_VERSION, get_chat_template
 from llmops.training._trl_shared import (
-    apply_smoke, common_config_kwargs, run_and_save,
+    apply_smoke,
+    common_config_kwargs,
+    run_and_save,
 )
 from llmops.training.train_sft_lora import (
-    _build_peft_config, _load_model_and_tokenizer, _print_effective_config,
-    _validate_config, _wrap_with_peft,
+    _build_peft_config,
+    _load_model_and_tokenizer,
+    _print_effective_config,
+    _validate_config,
+    _wrap_with_peft,
 )
 
 log = get_logger(__name__)
@@ -31,8 +37,9 @@ log = get_logger(__name__)
 
 def _smoke_overrides(cfg: dict[str, Any]) -> dict[str, Any]:
     # KTO's KL term requires an actual batch size > 1.
-    return apply_smoke(cfg, "artifacts/kto-smoke",
-                       extra_training={"per_device_train_batch_size": 2})
+    return apply_smoke(
+        cfg, "artifacts/kto-smoke", extra_training={"per_device_train_batch_size": 2}
+    )
 
 
 def _load_kto_dataset(path: str | Path, *, limit: int | None = None) -> Any:
@@ -43,14 +50,15 @@ def _load_kto_dataset(path: str | Path, *, limit: int | None = None) -> Any:
     for r in read_jsonl(path):
         if "prompt" not in r or "completion" not in r or "label" not in r:
             continue
-        rows.append({"prompt": r["prompt"], "completion": r["completion"],
-                     "label": bool(r["label"])})
+        rows.append(
+            {"prompt": r["prompt"], "completion": r["completion"], "label": bool(r["label"])}
+        )
     if limit is not None:
         rows = rows[:limit]
     if not rows:
         raise ValueError(
-            f"No valid KTO rows in {path}. Each row needs prompt, completion, "
-            "and a boolean label.")
+            f"No valid KTO rows in {path}. Each row needs prompt, completion, and a boolean label."
+        )
     return Dataset.from_list(rows)
 
 
@@ -100,8 +108,11 @@ def train(cfg: dict[str, Any], *, smoke_test: bool = False) -> Path:
         trainer_peft = peft_config
 
     train_ds = _load_kto_dataset(data_cfg["train_path"], limit=data_cfg.get("limit"))
-    eval_ds = (_load_kto_dataset(data_cfg["eval_path"], limit=data_cfg.get("limit"))
-               if data_cfg.get("eval_path") else None)
+    eval_ds = (
+        _load_kto_dataset(data_cfg["eval_path"], limit=data_cfg.get("limit"))
+        if data_cfg.get("eval_path")
+        else None
+    )
 
     output_dir = Path(output_cfg.get("adapter_dir", "artifacts/kto-adapter"))
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -110,13 +121,25 @@ def train(cfg: dict[str, Any], *, smoke_test: bool = False) -> Path:
 
     def make_trainer(callbacks: list[Any], tok_kwarg: str) -> Any:
         return KTOTrainer(
-            model=model, args=args, train_dataset=train_ds, eval_dataset=eval_ds,
-            peft_config=trainer_peft, callbacks=callbacks, **{tok_kwarg: tokenizer})
+            model=model,
+            args=args,
+            train_dataset=train_ds,
+            eval_dataset=eval_ds,
+            peft_config=trainer_peft,
+            callbacks=callbacks,
+            **{tok_kwarg: tokenizer},
+        )
 
     return run_and_save(
-        method="kto", cfg=cfg, smoke_test=smoke_test, output_dir=output_dir,
-        tokenizer=tokenizer, base_model=model_cfg["base_model"],
-        peft_method=peft_method, make_trainer=make_trainer)
+        method="kto",
+        cfg=cfg,
+        smoke_test=smoke_test,
+        output_dir=output_dir,
+        tokenizer=tokenizer,
+        base_model=model_cfg["base_model"],
+        peft_method=peft_method,
+        make_trainer=make_trainer,
+    )
 
 
 def main(argv: list[str] | None = None) -> int:

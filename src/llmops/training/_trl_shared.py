@@ -6,12 +6,15 @@ transformers TrainingArguments) from our YAML, wire the metrics callback, run,
 and save a lineage sidecar. This module factors out the parts that are
 identical so each trainer module stays small and consistent with train_dpo.
 """
+
 from __future__ import annotations
 
+import contextlib
 import inspect
 import json
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from llmops.common.config import config_hash, flatten
 from llmops.common.logging import get_logger
@@ -26,21 +29,32 @@ SMOKE_MODEL = "HuggingFaceTB/SmolLM2-135M-Instruct"
 
 
 def apply_smoke(
-    cfg: dict[str, Any], adapter_dir: str,
+    cfg: dict[str, Any],
+    adapter_dir: str,
     extra_training: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Shrink a config to a ~30s CPU smoke run: tiny model, 2 steps. Online-RL
     methods pass extra_training (e.g. a batch size that fits num_generations)."""
     cfg = dict(cfg)
     model = dict(cfg.get("model", {}))
-    model.update({"base_model": SMOKE_MODEL, "loader": "hf",
-                  "quantization": None, "attn_impl": "eager"})
+    model.update(
+        {"base_model": SMOKE_MODEL, "loader": "hf", "quantization": None, "attn_impl": "eager"}
+    )
     cfg["model"] = model
     tc = dict(cfg.get("training", {}))
-    tc.update({"max_steps": 2, "epochs": 1, "per_device_train_batch_size": 1,
-               "gradient_accumulation_steps": 1, "bf16": False, "fp16": False,
-               "gradient_checkpointing": False, "save_strategy": "no",
-               "logging_steps": 1})
+    tc.update(
+        {
+            "max_steps": 2,
+            "epochs": 1,
+            "per_device_train_batch_size": 1,
+            "gradient_accumulation_steps": 1,
+            "bf16": False,
+            "fp16": False,
+            "gradient_checkpointing": False,
+            "save_strategy": "no",
+            "logging_steps": 1,
+        }
+    )
     if extra_training:
         tc.update(extra_training)
     cfg["training"] = tc
@@ -49,7 +63,9 @@ def apply_smoke(
 
 
 def common_config_kwargs(
-    cfg: dict[str, Any], output_dir: Path, param_names: Any,
+    cfg: dict[str, Any],
+    output_dir: Path,
+    param_names: Any,
 ) -> dict[str, Any]:
     """The TrainingArguments-level kwargs every TRL *Config accepts, filtered to
     the ones this TRL version actually declares."""
@@ -82,8 +98,14 @@ def common_config_kwargs(
 
 
 def run_and_save(
-    *, method: str, cfg: dict[str, Any], smoke_test: bool, output_dir: Path,
-    tokenizer: Any, base_model: str, peft_method: str,
+    *,
+    method: str,
+    cfg: dict[str, Any],
+    smoke_test: bool,
+    output_dir: Path,
+    tokenizer: Any,
+    base_model: str,
+    peft_method: str,
     make_trainer: Callable[[list[Any], str], Any],
 ) -> Path:
     """Wire the tracker + metrics callback, build the trainer, train, and save.
@@ -102,20 +124,33 @@ def run_and_save(
 
     with tracker.start_run(run_name=run_name):
         tracker.log_params(flatten({**cfg, "_config_hash": config_h}))
-        tracker.set_tags({"method": method, "config_hash": config_h,
-                          "peft_method": peft_method,
-                          "git_sha": identity.get("git_sha") or "n/a",
-                          "platform": identity.get("platform")})
+        tracker.set_tags(
+            {
+                "method": method,
+                "config_hash": config_h,
+                "peft_method": peft_method,
+                "git_sha": identity.get("git_sha") or "n/a",
+                "platform": identity.get("platform"),
+            }
+        )
 
         metrics_cb = TrainingMetricsCallback(
-            output_dir=output_dir, method=method, run_name=run_name,
-            smoke_test=smoke_test, base_model=base_model, peft_method=peft_method)
+            output_dir=output_dir,
+            method=method,
+            run_name=run_name,
+            smoke_test=smoke_test,
+            base_model=base_model,
+            peft_method=peft_method,
+        )
 
         # transformers >=4.46 renamed the tokenizer kwarg to processing_class.
         from transformers import Trainer
-        tok_kwarg = ("processing_class"
-                     if "processing_class" in inspect.signature(Trainer.__init__).parameters
-                     else "tokenizer")
+
+        tok_kwarg = (
+            "processing_class"
+            if "processing_class" in inspect.signature(Trainer.__init__).parameters
+            else "tokenizer"
+        )
         trainer = make_trainer([metrics_cb], tok_kwarg)
         try:
             trainer.train()
@@ -123,21 +158,29 @@ def run_and_save(
             metrics_cb.mark_failed(f"{type(exc).__name__}: {exc}", state=trainer.state)
             raise
         trainer.save_model(str(output_dir))
-        try:
+        with contextlib.suppress(Exception):
             tokenizer.save_pretrained(str(output_dir))
-        except Exception:  # noqa: BLE001 - reward models may lack a chat template
-            pass
 
-        (output_dir / "lineage.json").write_text(json.dumps({
-            "method": method, "config_hash": config_h, "base_model": base_model,
-            "peft_method": peft_method, "smoke_test": smoke_test,
-            "identity": identity, "config": cfg,
-        }, indent=2, default=str), encoding="utf-8")
+        (output_dir / "lineage.json").write_text(
+            json.dumps(
+                {
+                    "method": method,
+                    "config_hash": config_h,
+                    "base_model": base_model,
+                    "peft_method": peft_method,
+                    "smoke_test": smoke_test,
+                    "identity": identity,
+                    "config": cfg,
+                },
+                indent=2,
+                default=str,
+            ),
+            encoding="utf-8",
+        )
 
         history = getattr(trainer.state, "log_history", [])
         if history:
-            metrics = {k: float(v) for k, v in history[-1].items()
-                       if isinstance(v, (int, float))}
+            metrics = {k: float(v) for k, v in history[-1].items() if isinstance(v, (int, float))}
             if metrics:
                 tracker.log_metrics(metrics)
         tracker.log_artifacts(str(output_dir))

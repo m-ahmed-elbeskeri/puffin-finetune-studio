@@ -7,6 +7,7 @@ Pipeline:
 Returns a `PipelineResult` with text + telemetry. The HTTP layer wraps this
 into the OpenAI-compatible response shape.
 """
+
 from __future__ import annotations
 
 import time
@@ -84,7 +85,9 @@ def run_chat_completion(
             ChatChoice(
                 index=0,
                 message=Message(role=Role.ASSISTANT, content=text),
-                finish_reason=gen.finish_reason if gen.finish_reason in {"stop", "length", "content_filter", "tool_calls"} else "stop",
+                finish_reason=gen.finish_reason
+                if gen.finish_reason in {"stop", "length", "content_filter", "tool_calls"}
+                else "stop",
             )
         ],
         usage=Usage(

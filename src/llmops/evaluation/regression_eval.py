@@ -4,6 +4,7 @@ Adding to this set is part of the rollback runbook: every production incident
 should add at least one record here so the next training run blocks if it
 regresses on it.
 """
+
 from __future__ import annotations
 
 import argparse

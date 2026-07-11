@@ -1,21 +1,27 @@
 """UI serving control: status read, idle stop, and the dangerous gate."""
+
 from __future__ import annotations
 
 import json
 from pathlib import Path
 
-from starlette.testclient import TestClient
-
 from copilot.backend import serving_ops
 from copilot.backend.app import create_app
 from copilot.backend.settings import Settings
+from starlette.testclient import TestClient
 
 
 def _client(repo: Path, *, dangerous: bool) -> TestClient:
-    return TestClient(create_app(settings=Settings(
-        anthropic_api_key="", repo_root=repo,
-        db_path=repo / "artifacts" / "copilot" / "threads.sqlite3",
-        enable_dangerous_tools=dangerous)))
+    return TestClient(
+        create_app(
+            settings=Settings(
+                anthropic_api_key="",
+                repo_root=repo,
+                db_path=repo / "artifacts" / "copilot" / "threads.sqlite3",
+                enable_dangerous_tools=dangerous,
+            )
+        )
+    )
 
 
 def test_status_absent(repo: Path) -> None:
@@ -66,7 +72,6 @@ def test_serving_log_reads_newest(repo: Path) -> None:
 def test_serve_chat_proxy_errors_gracefully_when_down(repo: Path) -> None:
     # Nothing is serving on the unused port -> a typed error, not a 500.
     with _client(repo, dangerous=False) as client:
-        r = client.post("/api/serving/chat", json={
-            "prompt": "hi", "url": "http://127.0.0.1:8099"})
+        r = client.post("/api/serving/chat", json={"prompt": "hi", "url": "http://127.0.0.1:8099"})
         assert r.status_code == 200
         assert r.json()["kind"] == "error"

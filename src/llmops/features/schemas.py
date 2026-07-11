@@ -4,6 +4,7 @@ Imported by both training (data validation, batch construction) and serving
 (request validation, response shaping). Changes here are breaking changes for
 the whole pipeline — bump SCHEMA_VERSION when changing.
 """
+
 from __future__ import annotations
 
 from datetime import datetime

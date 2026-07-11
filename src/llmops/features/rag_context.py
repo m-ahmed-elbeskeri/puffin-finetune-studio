@@ -1,4 +1,5 @@
 """RAG context formatting — must be identical between RAG ingestion and serving."""
+
 from __future__ import annotations
 
 from collections.abc import Sequence

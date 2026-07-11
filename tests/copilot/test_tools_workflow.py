@@ -3,15 +3,13 @@
 Each test calls the tool through the global registry exactly as the
 LLM tool-use loop would, so we exercise validation + serialisation too.
 """
+
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import pytest
-
 from copilot.backend.tools import registry
-
 
 pytestmark = pytest.mark.asyncio
 
@@ -45,18 +43,26 @@ async def test_project_status_with_raw_data(ctx):
 async def test_dataset_audit_chat_schema(ctx):
     p = ctx.repo_root / "data" / "raw" / "demo.jsonl"
     p.write_text(
-        "\n".join(json.dumps({
-            "messages": [
-                {"role": "user", "content": "hello"},
-                {"role": "assistant", "content": "hi there"},
-            ],
-            "source": "demo",
-            "license": "internal",
-        }) for _ in range(10)) + "\n",
+        "\n".join(
+            json.dumps(
+                {
+                    "messages": [
+                        {"role": "user", "content": "hello"},
+                        {"role": "assistant", "content": "hi there"},
+                    ],
+                    "source": "demo",
+                    "license": "internal",
+                }
+            )
+            for _ in range(10)
+        )
+        + "\n",
         encoding="utf-8",
     )
     r = await registry.invoke(
-        "dataset_audit", {"path": "data/raw/demo.jsonl"}, ctx,
+        "dataset_audit",
+        {"path": "data/raw/demo.jsonl"},
+        ctx,
     )
     assert r["kind"] == "dataset_audit"
     assert r["schema"] == "messages"
@@ -66,19 +72,26 @@ async def test_dataset_audit_chat_schema(ctx):
 
 async def test_dataset_audit_flags_email(ctx):
     p = ctx.repo_root / "data" / "raw" / "pii.jsonl"
-    p.write_text(json.dumps({
-        "messages": [{"role": "user",
-                      "content": "Email me at alice@example.com please"}]
-    }) + "\n", encoding="utf-8")
+    p.write_text(
+        json.dumps(
+            {"messages": [{"role": "user", "content": "Email me at alice@example.com please"}]}
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     r = await registry.invoke(
-        "dataset_audit", {"path": "data/raw/pii.jsonl"}, ctx,
+        "dataset_audit",
+        {"path": "data/raw/pii.jsonl"},
+        ctx,
     )
     assert r["pii"]["email"] >= 1
 
 
 async def test_dataset_audit_rejects_path_escape(ctx):
     r = await registry.invoke(
-        "dataset_audit", {"path": "../etc/passwd"}, ctx,
+        "dataset_audit",
+        {"path": "../etc/passwd"},
+        ctx,
     )
     assert r["kind"] == "error"
     assert "escapes repo root" in r["message"]
@@ -86,12 +99,12 @@ async def test_dataset_audit_rejects_path_escape(ctx):
 
 async def test_dataset_preview(ctx):
     p = ctx.repo_root / "data" / "processed" / "train.jsonl"
-    rows = [{"id": i, "messages": [{"role": "user", "content": f"q{i}"}]}
-            for i in range(5)]
+    rows = [{"id": i, "messages": [{"role": "user", "content": f"q{i}"}]} for i in range(5)]
     p.write_text("\n".join(json.dumps(r) for r in rows), encoding="utf-8")
     r = await registry.invoke(
         "dataset_preview",
-        {"path": "data/processed/train.jsonl", "n": 3}, ctx,
+        {"path": "data/processed/train.jsonl", "n": 3},
+        ctx,
     )
     assert r["kind"] == "dataset_preview"
     assert len(r["records"]) == 3
@@ -106,8 +119,11 @@ async def test_train_history_lists_seeded_run(ctx, seed_finished_run):
     assert r["kind"] == "run_history"
     runs = r["runs"]
     assert len(runs) >= 1
-    run = next(r for r in runs if r["adapter_dir"] == "artifacts\\adapter"
-               or r["adapter_dir"] == "artifacts/adapter")
+    run = next(
+        r
+        for r in runs
+        if r["adapter_dir"] == "artifacts\\adapter" or r["adapter_dir"] == "artifacts/adapter"
+    )
     assert run["status"] == "completed"
     assert run["final_loss"] == 0.5
     assert run["total_steps"] == 4
@@ -131,7 +147,8 @@ async def test_train_status_no_active_run(ctx):
 async def test_train_get_run_full_metrics(ctx, seed_finished_run):
     r = await registry.invoke(
         "train_get_run",
-        {"adapter_dir": "artifacts/adapter"}, ctx,
+        {"adapter_dir": "artifacts/adapter"},
+        ctx,
     )
     assert r["kind"] == "run_detail"
     assert len(r["run"]["metrics"]) == 4
@@ -141,7 +158,9 @@ async def test_train_get_run_full_metrics(ctx, seed_finished_run):
 async def test_train_start_blocked_without_dangerous(ctx, monkeypatch):
     safe_ctx = type(ctx)(repo_root=ctx.repo_root, enable_dangerous=False)
     r = await registry.invoke(
-        "train_start", {"method": "sft", "smoke": True}, safe_ctx,
+        "train_start",
+        {"method": "sft", "smoke": True},
+        safe_ctx,
     )
     assert r["kind"] == "error"
     assert "disabled" in r["message"].lower()
@@ -183,19 +202,20 @@ async def test_config_edit_writes_backup_and_validates(ctx):
     new_text = "model:\n  base_model: hf/test\ntraining:\n  epochs: 2\n"
     r = await registry.invoke(
         "config_edit",
-        {"path": "configs/train.yaml", "new_text": new_text}, ctx,
+        {"path": "configs/train.yaml", "new_text": new_text},
+        ctx,
     )
     assert r["kind"] == "config_edit_result"
     backup = ctx.repo_root / (r["backup"])
     assert backup.exists()
-    assert "epochs: 2" in (ctx.repo_root / "configs/train.yaml").read_text(
-        encoding="utf-8")
+    assert "epochs: 2" in (ctx.repo_root / "configs/train.yaml").read_text(encoding="utf-8")
 
 
 async def test_config_edit_rejects_bad_yaml(ctx):
     r = await registry.invoke(
         "config_edit",
-        {"path": "configs/train.yaml", "new_text": ": ::: invalid yaml ::"}, ctx,
+        {"path": "configs/train.yaml", "new_text": ": ::: invalid yaml ::"},
+        ctx,
     )
     assert r["kind"] == "error"
     assert "YAML parse error" in r["message"]
@@ -204,7 +224,8 @@ async def test_config_edit_rejects_bad_yaml(ctx):
 async def test_config_edit_rejects_outside_paths(ctx):
     r = await registry.invoke(
         "config_edit",
-        {"path": "README.md", "new_text": "hi"}, ctx,
+        {"path": "README.md", "new_text": "hi"},
+        ctx,
     )
     assert r["kind"] == "error"
     assert "only configs/" in r["message"]
@@ -216,7 +237,8 @@ async def test_config_edit_rejects_outside_paths(ctx):
 async def test_deploy_render_k8s_returns_yaml(ctx):
     r = await registry.invoke(
         "deploy_render_k8s",
-        {"environment": "staging", "replicas": 2}, ctx,
+        {"environment": "staging", "replicas": 2},
+        ctx,
     )
     assert r["kind"] == "k8s_manifest"
     assert "kind: Deployment" in r["yaml"]
@@ -234,9 +256,10 @@ async def test_monitor_quality_absent(ctx):
 async def test_monitor_quality_present(ctx):
     d = ctx.repo_root / "artifacts" / "monitoring"
     d.mkdir(parents=True, exist_ok=True)
-    (d / "quality.json").write_text(json.dumps(
-        {"sampled": 50, "refusal_rate": 0.05, "json_validity_rate": 0.98}),
-        encoding="utf-8")
+    (d / "quality.json").write_text(
+        json.dumps({"sampled": 50, "refusal_rate": 0.05, "json_validity_rate": 0.98}),
+        encoding="utf-8",
+    )
     r = await registry.invoke("monitor_quality", {}, ctx)
     assert r["present"] is True
     assert r["report"]["sampled"] == 50
@@ -244,10 +267,20 @@ async def test_monitor_quality_present(ctx):
 
 async def test_monitor_request_log_summary(ctx):
     p = ctx.repo_root / "artifacts" / "serving" / "requests.jsonl"
-    p.write_text("\n".join(json.dumps({
-        "ts": "2026-01-01T00:00:00Z",
-        "model_version": "1", "latency_ms": 200 + i, "output_chars": 50,
-    }) for i in range(10)), encoding="utf-8")
+    p.write_text(
+        "\n".join(
+            json.dumps(
+                {
+                    "ts": "2026-01-01T00:00:00Z",
+                    "model_version": "1",
+                    "latency_ms": 200 + i,
+                    "output_chars": 50,
+                }
+            )
+            for i in range(10)
+        ),
+        encoding="utf-8",
+    )
     r = await registry.invoke("monitor_request_log", {"n": 5}, ctx)
     assert r["present"] is True
     assert r["total"] == 10

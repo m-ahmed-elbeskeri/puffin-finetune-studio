@@ -1,4 +1,5 @@
 """Structured JSON logging with optional PII redaction."""
+
 from __future__ import annotations
 
 import logging
@@ -74,9 +75,7 @@ def configure_logging(
             redact=resolved_redact,
         )
     else:
-        formatter = logging.Formatter(
-            "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-        )
+        formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
     handler.setFormatter(formatter)
 
     root = logging.getLogger()

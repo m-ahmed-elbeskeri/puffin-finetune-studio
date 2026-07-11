@@ -43,9 +43,7 @@ def test_env_interpolation_recursive(tmp_path, monkeypatch):
     monkeypatch.setenv("PUFFIN_REGION", "eu-west-1")
     p = tmp_path / "c.yaml"
     p.write_text(
-        yaml.safe_dump(
-            {"a": {"region": "${PUFFIN_REGION}"}, "b": ["${PUFFIN_REGION}", "x"]}
-        )
+        yaml.safe_dump({"a": {"region": "${PUFFIN_REGION}"}, "b": ["${PUFFIN_REGION}", "x"]})
     )
     assert load_yaml(p) == {"a": {"region": "eu-west-1"}, "b": ["eu-west-1", "x"]}
 

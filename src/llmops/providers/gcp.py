@@ -4,6 +4,7 @@ All Google Cloud SDKs are imported lazily so this module is import-safe even
 when the `gcp` extra is not installed. A clear ProviderNotAvailableError is
 raised the moment a method that actually needs the SDK is called.
 """
+
 from __future__ import annotations
 
 import os
@@ -24,8 +25,7 @@ def _import_gcs():
         return storage
     except ImportError as exc:  # pragma: no cover
         raise ProviderNotAvailableError(
-            "google-cloud-storage not installed. "
-            "Install puffin-finetune-studio[gcp]."
+            "google-cloud-storage not installed. Install puffin-finetune-studio[gcp]."
         ) from exc
 
 
@@ -36,8 +36,7 @@ def _import_aiplatform():
         return aiplatform
     except ImportError as exc:  # pragma: no cover
         raise ProviderNotAvailableError(
-            "google-cloud-aiplatform not installed. "
-            "Install puffin-finetune-studio[gcp]."
+            "google-cloud-aiplatform not installed. Install puffin-finetune-studio[gcp]."
         ) from exc
 
 
@@ -91,7 +90,7 @@ class GCSStorage:
             return local
         local.mkdir(parents=True, exist_ok=True)
         for b in blobs:
-            rel = b.name[len(blob_path):].lstrip("/")
+            rel = b.name[len(blob_path) :].lstrip("/")
             target = local / rel
             target.parent.mkdir(parents=True, exist_ok=True)
             b.download_to_filename(str(target))
@@ -166,11 +165,7 @@ class VertexAIModelRegistry:
         if not models:
             raise KeyError(f"no Vertex Model with display_name={name!r}")
         target = next(
-            (
-                m
-                for m in models
-                if m.version_aliases and version in m.version_aliases
-            ),
+            (m for m in models if m.version_aliases and version in m.version_aliases),
             None,
         )
         if target is None:

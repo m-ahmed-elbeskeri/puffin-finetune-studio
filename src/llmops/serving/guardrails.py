@@ -12,6 +12,7 @@ Output checks (post-generation):
   - optional `require_json` enforcement
   - optional `must_not_contain` list
 """
+
 from __future__ import annotations
 
 import re
@@ -64,9 +65,7 @@ def check_input(
             has_user = True
         total_chars += len(content or "")
         if total_chars > cfg.max_input_chars:
-            raise GuardrailError(
-                f"input too long: {total_chars} chars > {cfg.max_input_chars}"
-            )
+            raise GuardrailError(f"input too long: {total_chars} chars > {cfg.max_input_chars}")
         for pat in cfg.banned_input_patterns:
             if re.search(pat, content or "", flags=re.IGNORECASE):
                 raise GuardrailError(f"input matched banned pattern: {pat!r}")

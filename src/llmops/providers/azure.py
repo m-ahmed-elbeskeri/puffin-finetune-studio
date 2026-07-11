@@ -2,6 +2,7 @@
 
 Lazy-imports azure-storage-blob and azure-ai-ml.
 """
+
 from __future__ import annotations
 
 import os
@@ -78,9 +79,7 @@ class AzureBlobStorage:
         if u.scheme == "az":
             return u.bucket, u.path
         if not self.default_container:
-            raise ValueError(
-                f"remote {remote_path!r} is not az:// and no default_container set"
-            )
+            raise ValueError(f"remote {remote_path!r} is not az:// and no default_container set")
         return self.default_container, remote_path.lstrip("/")
 
     def upload(self, local_path: str | Path, remote_path: str) -> str:
@@ -92,7 +91,9 @@ class AzureBlobStorage:
                 if f.is_file():
                     rel = f.relative_to(local).as_posix()
                     with f.open("rb") as fh:
-                        client.upload_blob(name=f"{blob.rstrip('/')}/{rel}", data=fh, overwrite=True)
+                        client.upload_blob(
+                            name=f"{blob.rstrip('/')}/{rel}", data=fh, overwrite=True
+                        )
             return f"az://{container}/{blob}"
         with local.open("rb") as fh:
             client.upload_blob(name=blob, data=fh, overwrite=True)
@@ -112,7 +113,7 @@ class AzureBlobStorage:
             return local
         local.mkdir(parents=True, exist_ok=True)
         for b in blobs:
-            rel = b.name[len(blob):].lstrip("/")
+            rel = b.name[len(blob) :].lstrip("/")
             target = local / rel
             target.parent.mkdir(parents=True, exist_ok=True)
             with target.open("wb") as fh:
@@ -125,15 +126,14 @@ class AzureBlobStorage:
 
     def list(self, prefix: str) -> list[str]:
         container, blob = self._split(prefix)
-        return [b.name for b in self.svc.get_container_client(container).list_blobs(name_starts_with=blob)]
+        return [
+            b.name
+            for b in self.svc.get_container_client(container).list_blobs(name_starts_with=blob)
+        ]
 
     def open_read(self, remote_path: str) -> bytes:
         container, blob = self._split(remote_path)
-        return (
-            self.svc.get_container_client(container)
-            .download_blob(blob)
-            .readall()
-        )
+        return self.svc.get_container_client(container).download_blob(blob).readall()
 
     def open_write(self, remote_path: str, data: bytes) -> str:
         container, blob = self._split(remote_path)

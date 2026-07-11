@@ -1,4 +1,5 @@
 """Build the right provider for the current profile."""
+
 from __future__ import annotations
 
 from typing import Any

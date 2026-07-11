@@ -9,16 +9,15 @@ us verify:
   - the loop terminates on stop_reason='end_turn'
   - max_iterations guards against runaway loops
 """
+
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any, AsyncIterator
+from collections.abc import AsyncIterator
+from typing import Any
 
 import pytest
-
 from copilot.backend.loop import run_loop
 from copilot.backend.tools import ToolContext
-
 
 pytestmark = pytest.mark.asyncio
 
@@ -49,38 +48,62 @@ async def test_loop_passes_tool_ctx_to_provider(tmp_path):
     """The provider MUST receive the per-request tool_ctx so tool-running
     providers (Claude Code MCP, agent CLIs) scope to the chat's project.
     Regression guard for the cross-project config-edit bug."""
-    prov = StubProvider(scripts=[[
-        {"type": "turn_end", "stop_reason": "end_turn",
-         "usage": {"input_tokens": 1, "output_tokens": 1},
-         "content": [{"type": "text", "text": "ok"}]},
-    ]])
+    prov = StubProvider(
+        scripts=[
+            [
+                {
+                    "type": "turn_end",
+                    "stop_reason": "end_turn",
+                    "usage": {"input_tokens": 1, "output_tokens": 1},
+                    "content": [{"type": "text", "text": "ok"}],
+                },
+            ]
+        ]
+    )
     ctx = ToolContext(repo_root=tmp_path, enable_dangerous=True)
-    await _collect(run_loop(
-        provider=prov, model="m", system="s",
-        messages=[{"role": "user", "content": [{"type": "text", "text": "hi"}]}],
-        tool_ctx=ctx, max_tokens=10,
-    ))
+    await _collect(
+        run_loop(
+            provider=prov,
+            model="m",
+            system="s",
+            messages=[{"role": "user", "content": [{"type": "text", "text": "hi"}]}],
+            tool_ctx=ctx,
+            max_tokens=10,
+        )
+    )
     assert prov.calls[0]["tool_ctx"] is ctx
 
 
 async def test_loop_text_only_terminates_immediately(tmp_path):
     """No tool_use → loop runs ONE provider turn and exits."""
-    prov = StubProvider(scripts=[[
-        {"type": "text_delta", "text": "Hi"},
-        {"type": "text_delta", "text": " there"},
-        {"type": "turn_end", "stop_reason": "end_turn",
-         "usage": {"input_tokens": 5, "output_tokens": 2},
-         "content": [{"type": "text", "text": "Hi there"}]},
-    ]])
+    prov = StubProvider(
+        scripts=[
+            [
+                {"type": "text_delta", "text": "Hi"},
+                {"type": "text_delta", "text": " there"},
+                {
+                    "type": "turn_end",
+                    "stop_reason": "end_turn",
+                    "usage": {"input_tokens": 5, "output_tokens": 2},
+                    "content": [{"type": "text", "text": "Hi there"}],
+                },
+            ]
+        ]
+    )
 
-    messages = [{"role": "user", "content": [
-        {"type": "text", "text": "hello"}]}]
+    messages = [{"role": "user", "content": [{"type": "text", "text": "hello"}]}]
     ctx = ToolContext(repo_root=tmp_path, enable_dangerous=True)
 
-    events = await _collect(run_loop(
-        provider=prov, model="claude-test", system="sys",
-        messages=messages, tool_ctx=ctx, max_tokens=100,
-    ))
+    events = await _collect(
+        run_loop(
+            provider=prov,
+            model="claude-test",
+            system="sys",
+            messages=messages,
+            tool_ctx=ctx,
+            max_tokens=100,
+        )
+    )
     types = [e["event"] for e in events]
     assert types.count("text") == 2
     assert "assistant_message" in types
@@ -100,33 +123,46 @@ async def test_loop_invokes_tool_then_completes(tmp_path):
     (tmp_path / "data" / "processed").mkdir(parents=True)
     (tmp_path / "artifacts" / "_registry").mkdir(parents=True)
 
-    prov = StubProvider(scripts=[
-        # Turn 1: assistant asks to call project_status
-        [
-            {"type": "tool_use_start", "id": "tu_1", "name": "project_status"},
-            {"type": "tool_use_end", "id": "tu_1", "name": "project_status",
-             "input": {}},
-            {"type": "turn_end", "stop_reason": "tool_use",
-             "usage": {"input_tokens": 10, "output_tokens": 3},
-             "content": [{"type": "tool_use", "id": "tu_1",
-                          "name": "project_status", "input": {}}]},
-        ],
-        # Turn 2: assistant comments on the result and stops
-        [
-            {"type": "text_delta", "text": "Looks empty."},
-            {"type": "turn_end", "stop_reason": "end_turn",
-             "usage": {"input_tokens": 20, "output_tokens": 2},
-             "content": [{"type": "text", "text": "Looks empty."}]},
-        ],
-    ])
-    messages = [{"role": "user", "content": [
-        {"type": "text", "text": "status?"}]}]
+    prov = StubProvider(
+        scripts=[
+            # Turn 1: assistant asks to call project_status
+            [
+                {"type": "tool_use_start", "id": "tu_1", "name": "project_status"},
+                {"type": "tool_use_end", "id": "tu_1", "name": "project_status", "input": {}},
+                {
+                    "type": "turn_end",
+                    "stop_reason": "tool_use",
+                    "usage": {"input_tokens": 10, "output_tokens": 3},
+                    "content": [
+                        {"type": "tool_use", "id": "tu_1", "name": "project_status", "input": {}}
+                    ],
+                },
+            ],
+            # Turn 2: assistant comments on the result and stops
+            [
+                {"type": "text_delta", "text": "Looks empty."},
+                {
+                    "type": "turn_end",
+                    "stop_reason": "end_turn",
+                    "usage": {"input_tokens": 20, "output_tokens": 2},
+                    "content": [{"type": "text", "text": "Looks empty."}],
+                },
+            ],
+        ]
+    )
+    messages = [{"role": "user", "content": [{"type": "text", "text": "status?"}]}]
     ctx = ToolContext(repo_root=tmp_path, enable_dangerous=True)
 
-    events = await _collect(run_loop(
-        provider=prov, model="m", system=None,
-        messages=messages, tool_ctx=ctx, max_tokens=200,
-    ))
+    events = await _collect(
+        run_loop(
+            provider=prov,
+            model="m",
+            system=None,
+            messages=messages,
+            tool_ctx=ctx,
+            max_tokens=200,
+        )
+    )
 
     types = [e["event"] for e in events]
     assert "tool_call_start" in types
@@ -147,16 +183,22 @@ async def test_loop_invokes_tool_then_completes(tmp_path):
 async def test_loop_emits_error_on_provider_exception(tmp_path):
     class Boom:
         name = "boom"
-        async def stream_turn(self, **kw):  # noqa: ARG002
+
+        async def stream_turn(self, **kw):
             raise RuntimeError("provider down")
             yield  # pragma: no cover (make generator)
 
     messages = [{"role": "user", "content": [{"type": "text", "text": "?"}]}]
-    events = await _collect(run_loop(
-        provider=Boom(), model="m", system=None,
-        messages=messages, tool_ctx=ToolContext(repo_root=tmp_path),
-        max_tokens=100,
-    ))
+    events = await _collect(
+        run_loop(
+            provider=Boom(),
+            model="m",
+            system=None,
+            messages=messages,
+            tool_ctx=ToolContext(repo_root=tmp_path),
+            max_tokens=100,
+        )
+    )
     assert events[-1]["event"] == "error"
     assert "provider down" in events[-1]["data"]["message"]
 
@@ -165,19 +207,26 @@ async def test_loop_hits_iteration_bound(tmp_path):
     """If the model keeps requesting tools forever, the loop bails safely."""
     forever_tool_use = [
         {"type": "tool_use_end", "id": "tu_x", "name": "project_status", "input": {}},
-        {"type": "turn_end", "stop_reason": "tool_use",
-         "usage": {"input_tokens": 1, "output_tokens": 1},
-         "content": [{"type": "tool_use", "id": "tu_x",
-                      "name": "project_status", "input": {}}]},
+        {
+            "type": "turn_end",
+            "stop_reason": "tool_use",
+            "usage": {"input_tokens": 1, "output_tokens": 1},
+            "content": [{"type": "tool_use", "id": "tu_x", "name": "project_status", "input": {}}],
+        },
     ]
     prov = StubProvider(scripts=[forever_tool_use] * 3)
     (tmp_path / "artifacts" / "_registry").mkdir(parents=True)
 
-    events = await _collect(run_loop(
-        provider=prov, model="m", system=None,
-        messages=[{"role": "user", "content": [{"type": "text", "text": "?"}]}],
-        tool_ctx=ToolContext(repo_root=tmp_path, enable_dangerous=True),
-        max_tokens=50, max_iterations=2,
-    ))
+    events = await _collect(
+        run_loop(
+            provider=prov,
+            model="m",
+            system=None,
+            messages=[{"role": "user", "content": [{"type": "text", "text": "?"}]}],
+            tool_ctx=ToolContext(repo_root=tmp_path, enable_dangerous=True),
+            max_tokens=50,
+            max_iterations=2,
+        )
+    )
     assert events[-1]["event"] == "error"
     assert "safety bound" in events[-1]["data"]["message"]

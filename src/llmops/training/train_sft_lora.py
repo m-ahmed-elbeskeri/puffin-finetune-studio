@@ -21,6 +21,7 @@ Surfaces every relevant HuggingFace knob through the config:
 Logs full lineage (git SHA, config hash, dataset version, base-model revision,
 seed, package versions, GPU info) to MLflow if enabled, plus a JSON sidecar.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -329,10 +330,13 @@ def _print_effective_config(cfg: dict[str, Any]) -> None:
     has_cuda = torch.cuda.is_available()
     gpu = (
         f"{torch.cuda.get_device_name(0)} ({torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB)"
-        if has_cuda else "none (CPU)"
+        if has_cuda
+        else "none (CPU)"
     )
 
-    peft_method = "full FT" if not lora_cfg.get("enabled", True) else (lora_cfg.get("method") or "lora")
+    peft_method = (
+        "full FT" if not lora_cfg.get("enabled", True) else (lora_cfg.get("method") or "lora")
+    )
     precision = "bf16" if train_cfg.get("bf16") else ("fp16" if train_cfg.get("fp16") else "fp32")
     quant_str = "off"
     if quant:
@@ -352,7 +356,11 @@ def _print_effective_config(cfg: dict[str, Any]) -> None:
         f"  quantization         : {quant_str}",
         f"  precision            : {precision}",
         f"  peft method          : {peft_method}"
-        + (f" (r={lora_cfg.get('r')}, alpha={lora_cfg.get('alpha')})" if lora_cfg.get("enabled", True) else ""),
+        + (
+            f" (r={lora_cfg.get('r')}, alpha={lora_cfg.get('alpha')})"
+            if lora_cfg.get("enabled", True)
+            else ""
+        ),
         f"  optimizer            : {train_cfg.get('optim', 'adamw_torch')}",
         f"  lr / wd / clip       : {train_cfg.get('learning_rate', 2e-5)} / {train_cfg.get('weight_decay', 0.01)} / {train_cfg.get('max_grad_norm', 1.0)}",
         f"  scheduler            : {train_cfg.get('lr_scheduler_type', 'linear')} (warmup={train_cfg.get('warmup_ratio', 0.03)})",
@@ -360,7 +368,11 @@ def _print_effective_config(cfg: dict[str, Any]) -> None:
         f"  batch (per-dev * ga) : {train_cfg.get('per_device_train_batch_size', 2)} * {train_cfg.get('gradient_accumulation_steps', 16)}",
         f"  max_seq_length       : {data_cfg.get('max_seq_length', 4096)}",
         f"  loss_type            : {train_cfg.get('loss_type', 'nll')}"
-        + (f", neftune_alpha={train_cfg['neftune_noise_alpha']}" if train_cfg.get("neftune_noise_alpha") else ""),
+        + (
+            f", neftune_alpha={train_cfg['neftune_noise_alpha']}"
+            if train_cfg.get("neftune_noise_alpha")
+            else ""
+        ),
         f"  gc / liger / compile : "
         f"{train_cfg.get('gradient_checkpointing', False)} / "
         f"{train_cfg.get('use_liger_kernel', False)} / "
@@ -389,8 +401,7 @@ def _try_estimate_cost(cfg: dict[str, Any]) -> str | None:
     import yaml
 
     skill_script = (
-        Path.home() / ".claude" / "skills" / "puffin-finetune" /
-        "scripts" / "estimate_cost.py"
+        Path.home() / ".claude" / "skills" / "puffin-finetune" / "scripts" / "estimate_cost.py"
     )
     if not skill_script.exists():
         return None
@@ -588,9 +599,7 @@ def _load_model_and_tokenizer(model_cfg: dict[str, Any], train_cfg: dict[str, An
         return model, tokenizer
 
     if loader != "hf":
-        raise ValueError(
-            f"Unknown model.loader={loader!r}; expected 'hf', 'unsloth', or 'neuron'."
-        )
+        raise ValueError(f"Unknown model.loader={loader!r}; expected 'hf', 'unsloth', or 'neuron'.")
 
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -641,9 +650,7 @@ def _build_peft_config(lora_cfg: dict[str, Any]):
             r=int(lora_cfg.get("r", 16)),
             lora_alpha=int(lora_cfg.get("alpha", 32)),
             lora_dropout=float(lora_cfg.get("dropout", 0.05)),
-            target_modules=lora_cfg.get(
-                "target_modules", ["q_proj", "k_proj", "v_proj", "o_proj"]
-            ),
+            target_modules=lora_cfg.get("target_modules", ["q_proj", "k_proj", "v_proj", "o_proj"]),
             bias=str(lora_cfg.get("bias", "none")),
             use_dora=use_dora,
             use_rslora=bool(lora_cfg.get("use_rslora", False)),
@@ -662,9 +669,7 @@ def _build_peft_config(lora_cfg: dict[str, Any]):
         from peft import IA3Config
 
         # IA3 requires feedforward_modules to be a subset of target_modules.
-        target = lora_cfg.get("target_modules") or [
-            "k_proj", "v_proj", "down_proj"
-        ]
+        target = lora_cfg.get("target_modules") or ["k_proj", "v_proj", "down_proj"]
         feedforward = lora_cfg.get("feedforward_modules") or ["down_proj"]
         # Auto-expand target_modules to include feedforward entries if needed.
         target = list(dict.fromkeys(list(target) + [m for m in feedforward if m not in target]))
@@ -738,9 +743,7 @@ def _wrap_with_peft(model: Any, peft_config: Any, lora_cfg: dict[str, Any], load
             lora_alpha=int(lora_cfg.get("alpha", 32)),
             lora_dropout=float(lora_cfg.get("dropout", 0.0)),
             bias=str(lora_cfg.get("bias", "none")),
-            target_modules=lora_cfg.get(
-                "target_modules", ["q_proj", "k_proj", "v_proj", "o_proj"]
-            ),
+            target_modules=lora_cfg.get("target_modules", ["q_proj", "k_proj", "v_proj", "o_proj"]),
             use_gradient_checkpointing=True,
             use_rslora=bool(lora_cfg.get("use_rslora", False)),
             use_dora=bool(lora_cfg.get("use_dora", False)),
@@ -752,9 +755,7 @@ def _wrap_with_peft(model: Any, peft_config: Any, lora_cfg: dict[str, Any], load
     # Stabilize training when using 4-/8-bit quantization (cast LayerNorms to fp32, etc.)
     has_quant = getattr(model, "quantization_method", None) is not None
     if has_quant:
-        model = prepare_model_for_kbit_training(
-            model, use_gradient_checkpointing=True
-        )
+        model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=True)
 
     model = get_peft_model(model, peft_config)
     if hasattr(model, "print_trainable_parameters"):
@@ -889,7 +890,8 @@ def _build_neuron_args(cfg: dict[str, Any], output_dir: Path) -> Any:
         "pipeline_parallel_num_microbatches": neuron_cfg.get("pipeline_parallel_num_microbatches"),
         "disable_sequence_parallel": (
             not bool(neuron_cfg.get("sequence_parallel", True))
-            if neuron_cfg.get("sequence_parallel") is not None else None
+            if neuron_cfg.get("sequence_parallel") is not None
+            else None
         ),
         "fuse_qkv": neuron_cfg.get("fuse_qkv"),
     }
@@ -937,15 +939,14 @@ def _write_lineage(cfg: dict[str, Any], output_dir: Path, smoke_test: bool, load
     )
 
 
-def _train_neuron(cfg: dict[str, Any], output_dir: Path, model: Any, tokenizer: Any,
-                  dataset: Any) -> None:
+def _train_neuron(
+    cfg: dict[str, Any], output_dir: Path, model: Any, tokenizer: Any, dataset: Any
+) -> None:
     """Run NeuronTrainer on Trainium hardware. Untestable on non-Neuron machines."""
     try:
         from optimum.neuron import NeuronTrainer
     except ImportError as e:  # pragma: no cover
-        raise ImportError(
-            "loader=neuron requires the 'optimum-neuron' package."
-        ) from e
+        raise ImportError("loader=neuron requires the 'optimum-neuron' package.") from e
 
     args = _build_neuron_args(cfg, output_dir)
     trainer = NeuronTrainer(
@@ -1039,7 +1040,9 @@ def train(cfg: dict[str, Any], *, smoke_test: bool = False) -> Path:
                 "chat_template_version": chat_tpl_version,
                 "loader": loader,
                 "attn_impl": model_cfg.get("attn_impl", "sdpa"),
-                "peft_method": (lora_cfg.get("method") or "lora") if lora_cfg.get("enabled", True) else "full",
+                "peft_method": (lora_cfg.get("method") or "lora")
+                if lora_cfg.get("enabled", True)
+                else "full",
                 "git_sha": identity.get("git_sha") or "n/a",
                 "git_dirty": str(identity.get("git_dirty")),
                 "platform": identity.get("platform"),
@@ -1077,8 +1080,7 @@ def train(cfg: dict[str, Any], *, smoke_test: bool = False) -> Path:
             smoke_test=smoke_test,
             base_model=model_cfg["base_model"],
             peft_method=(
-                (lora_cfg.get("method") or "lora")
-                if lora_cfg.get("enabled", True) else "full"
+                (lora_cfg.get("method") or "lora") if lora_cfg.get("enabled", True) else "full"
             ),
         )
         trainer = SFTTrainer(
@@ -1094,8 +1096,7 @@ def train(cfg: dict[str, Any], *, smoke_test: bool = False) -> Path:
         except BaseException as exc:
             # Capture the failure in the summary so the UI's Runs tab can
             # show it. Re-raise so the CLI still exits non-zero.
-            metrics_cb.mark_failed(
-                f"{type(exc).__name__}: {exc}", state=trainer.state)
+            metrics_cb.mark_failed(f"{type(exc).__name__}: {exc}", state=trainer.state)
             raise
         trainer.save_model(str(output_dir))
         tokenizer.save_pretrained(str(output_dir))

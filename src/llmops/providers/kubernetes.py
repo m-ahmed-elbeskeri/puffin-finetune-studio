@@ -7,6 +7,7 @@ Two surface areas:
 - `K8sDeployment.deploy(...)` actually applies the manifests via the
   kubernetes Python client. Requires the `k8s` extra.
 """
+
 from __future__ import annotations
 
 import os
@@ -56,7 +57,7 @@ class K8sDeployment:
     ) -> str:
         """Return the YAML manifest (Deployment + Service + HPA) as a string."""
         app_name = f"puffin-{environment}"
-        gpu_resource = "    nvidia.com/gpu: \"1\"\n" if gpu else ""
+        gpu_resource = '    nvidia.com/gpu: "1"\n' if gpu else ""
         node_selector = (
             "      nodeSelector:\n        cloud.google.com/gke-accelerator: nvidia-l4\n"
             if gpu
@@ -73,7 +74,7 @@ class K8sDeployment:
               labels:
                 app: {app_name}
                 puffin.env: {environment}
-                puffin.model_ref: {model_ref.replace('/', '-')}
+                puffin.model_ref: {model_ref.replace("/", "-")}
             spec:
               replicas: {replicas}
               selector:
@@ -155,16 +156,22 @@ class K8sDeployment:
     def deploy(self, model_ref: str, *, environment: str, traffic_pct: int = 100) -> str:
         client, config = _import_k8s()
         try:
-            config.load_kube_config(context=self.context) if self.context else config.load_kube_config()
+            config.load_kube_config(
+                context=self.context
+            ) if self.context else config.load_kube_config()
         except Exception:  # pragma: no cover
             config.load_incluster_config()
 
-        manifest = self.render(model_ref=model_ref, environment=environment, traffic_pct=traffic_pct)
+        manifest = self.render(
+            model_ref=model_ref, environment=environment, traffic_pct=traffic_pct
+        )
         # Apply via stream of YAML docs
         from kubernetes import utils  # type: ignore
 
         api_client = client.ApiClient()
-        results = utils.create_from_yaml(api_client, yaml_objects=_load_yaml_docs(manifest), namespace=self.namespace)
+        results = utils.create_from_yaml(
+            api_client, yaml_objects=_load_yaml_docs(manifest), namespace=self.namespace
+        )
         log.info("applied %d manifests to namespace %s", len(results), self.namespace)
         return f"k8s://{self.namespace}/puffin-{environment}"
 

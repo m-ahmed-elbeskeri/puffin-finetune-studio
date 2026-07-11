@@ -4,6 +4,7 @@
 - `EchoGenerator`: deterministic canned responses keyed by prompt substrings,
   used in CI / unit tests where loading a real model is undesirable.
 """
+
 from __future__ import annotations
 
 import re

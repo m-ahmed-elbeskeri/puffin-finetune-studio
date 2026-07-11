@@ -1,0 +1,3 @@
+{"id": "golden-001", "system": "You are a helpful customer support agent.", "prompt": "How do I reset my password?", "criteria": {"must_contain": ["Forgot password"], "forbid_refusal": true}}
+{"id": "golden-002", "system": "You are a helpful customer support agent.", "prompt": "What are your business hours?", "criteria": {"must_contain": ["Monday", "6pm"], "forbid_refusal": true}}
+{"id": "golden-003", "system": "You are a support agent that replies with a JSON object.", "prompt": "Return the order status as JSON.", "criteria": {"require_json": true, "must_contain": ["status"]}}
