@@ -204,7 +204,7 @@ def test_prod_landing_is_not_error_shell(tmp_path):
         r = client.get("/dashboard/")
         assert r.status_code == 200
         assert "__next_error__" not in r.text
-        assert "Puffin Copilot" in r.text
+        assert "Puffin Studio" in r.text
 
         # And a hard load of "/" must also be a clean document, not the shell.
         root = client.get("/", follow_redirects=True)

@@ -85,7 +85,7 @@ function buildMarkdown(thread: ThreadSummary, messages: StoredMessage[]): string
     // Skip tool_result round-trip messages: the tool call line covers them.
     if (m.role === "user" && !text) continue;
     if (!text && toolUses.length === 0) continue;
-    lines.push(`## ${m.role === "user" ? "You" : "Puffin Copilot"}`, "");
+    lines.push(`## ${m.role === "user" ? "You" : "Copilot"}`, "");
     if (text) lines.push(text, "");
     for (const t of toolUses) {
       lines.push(`> 🔧 \`${t.name}(${JSON.stringify(t.input ?? {})})\``, "");

@@ -287,7 +287,7 @@ export function Composer({
             ref={taRef}
             value={value}
             rows={1}
-            aria-label="Message Puffin Copilot"
+            aria-label="Message Copilot"
             onChange={(e) => updateValue(e.target.value)}
             onKeyDown={onKeyDown}
             disabled={disabled}

@@ -95,7 +95,7 @@ export function Sidebar() {
         </button>
         <div className="min-w-0">
           <div className="text-[9px] font-bold uppercase tracking-widest text-accent leading-none">
-            Puffin Copilot
+            Puffin
           </div>
           <div className="text-sm font-extrabold leading-tight text-white">Fine-tune Studio</div>
         </div>
@@ -125,7 +125,7 @@ export function Sidebar() {
       </button>
       <div className="px-4 py-5 border-b border-white/5">
         <div className="text-[10px] uppercase tracking-widest text-accent font-bold">
-          Puffin Copilot
+          Puffin
         </div>
         <div className="text-white font-extrabold text-lg leading-tight mt-1">
           Fine-tune Studio

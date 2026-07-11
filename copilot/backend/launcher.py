@@ -1,4 +1,4 @@
-"""`finetune-copilot` - one command that opens the Puffin Copilot web UI.
+"""`finetune-copilot` - one command that opens the Puffin Studio web UI.
 
 This is the friendly front door to the whole platform. Typing::
 
@@ -590,7 +590,7 @@ def cmd_up(args: argparse.Namespace) -> int:
             return die(f"web UI {reason} - see logs above.")
 
         print()
-        info(_c("32", f"Puffin Copilot is ready -> {app_url}"))
+        info(_c("32", f"Puffin Studio is ready -> {app_url}"))
         if not args.no_browser:
             webbrowser.open(app_url)
         info("Press Ctrl+C to stop.")
@@ -629,7 +629,7 @@ def _add_common(sub: argparse.ArgumentParser) -> None:
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="finetune-copilot",
-        description="Open the Puffin Copilot web UI (backend + frontend, one command).",
+        description="Open Puffin Studio (backend + frontend web UI, one command).",
     )
     sub = parser.add_subparsers(dest="command")
 

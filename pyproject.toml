@@ -1,6 +1,6 @@
 [project]
 name = "puffin-finetune-studio"
-version = "0.1.0"
+version = "0.2.0"
 description = "A visual studio for fine-tuning open LLMs (SFT/LoRA/DPO), backed by a config-driven MLOps engine with eval gates, a model registry, monitoring, and cloud-portable serving."
 requires-python = ">=3.11"
 license = { text = "Apache-2.0" }

@@ -1,1 +1,1 @@
-"""FastAPI backend for Puffin Copilot."""
+"""FastAPI backend for Puffin Studio."""

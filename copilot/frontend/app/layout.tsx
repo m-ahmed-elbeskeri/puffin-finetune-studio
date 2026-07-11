@@ -19,7 +19,7 @@ const oswald = Oswald({
 });
 
 export const metadata: Metadata = {
-  title: "Puffin Copilot: fine-tune any open LLM",
+  title: "Puffin Studio: fine-tune any open LLM",
   description: "AI-first dashboard and chat for the Puffin LLM fine-tuning platform.",
 };
 

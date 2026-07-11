@@ -9,7 +9,7 @@ import sys
 def main() -> int:
     parser = argparse.ArgumentParser(
         prog="puffin-copilot",
-        description="Run the Puffin Copilot backend (FastAPI).",
+        description="Run the Puffin Studio backend (FastAPI).",
     )
     parser.add_argument("--host", default=None,
                         help="Override PUFFIN_COPILOT_HOST (default 127.0.0.1).")

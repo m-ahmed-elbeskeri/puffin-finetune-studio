@@ -19,7 +19,7 @@ export default function Home() {
 
   return (
     <div className="flex min-h-[50vh] items-center justify-center text-ink-500">
-      <p className="font-display uppercase tracking-wide">Loading Puffin Copilot…</p>
+      <p className="font-display uppercase tracking-wide">Loading Puffin Studio…</p>
       {/* If JS is disabled the client redirect never fires; give a way through. */}
       <noscript>
         <a href="/dashboard/">Continue to the dashboard</a>

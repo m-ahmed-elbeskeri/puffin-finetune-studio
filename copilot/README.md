@@ -1,12 +1,13 @@
-# Puffin Copilot
+# Puffin Studio
 
-**AI-first dashboard + chat for the Puffin LLM fine-tuning platform.**
+**The web studio for the Puffin LLM fine-tuning platform: a dashboard plus an AI copilot.**
 
-A native React/Next.js app whose primary surface is a chat with your choice
-of AI backend - the Anthropic/OpenAI APIs or any local agent CLI (Claude
-Code, Codex, Gemini, Qwen, OpenCode, Cursor, Copilot). The assistant has
-direct tool-use access to the entire `llmops.*` codebase: it can read your
-data, run training, evaluate, deploy, and watch monitoring - all by calling
+A native React/Next.js app for the whole fine-tuning lifecycle (data, train,
+evals, deploy, monitor) as pages you click through, with a built-in **copilot**
+chat. Pick your AI backend for the chat - the Anthropic/OpenAI APIs or any local
+agent CLI (Claude Code, Codex, Gemini, Qwen, OpenCode, Cursor, Copilot). The
+copilot has direct tool-use access to the entire `llmops.*` codebase: it can read
+your data, run training, evaluate, deploy, and watch monitoring, all by calling
 typed Python functions you've defined as tools.
 
 ```

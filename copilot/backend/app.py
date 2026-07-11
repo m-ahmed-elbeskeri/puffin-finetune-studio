@@ -1,4 +1,4 @@
-"""FastAPI application for Puffin Copilot.
+"""FastAPI application for Puffin Studio.
 
 Endpoints (all JSON unless noted):
 
@@ -229,7 +229,7 @@ def create_app(
     # whatever host we bind. Disable them in that mode.
     serving_frontend = bool(s.frontend_dist and s.frontend_dist.exists())
     app = FastAPI(
-        title="Puffin Copilot", version="0.1.0", lifespan=lifespan,
+        title="Puffin Studio", version="0.1.0", lifespan=lifespan,
         docs_url=None if serving_frontend else "/docs",
         redoc_url=None if serving_frontend else "/redoc",
         openapi_url=None if serving_frontend else "/openapi.json",
