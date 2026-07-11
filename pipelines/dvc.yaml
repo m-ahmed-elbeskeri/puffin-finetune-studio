@@ -1,0 +1,112 @@
+stages:
+  ingest:
+    cmd: python -m llmops.data.ingest --config configs/data.yaml
+    deps:
+      - src/llmops/data/ingest.py
+      - src/llmops/data/io_utils.py
+      - configs/data.yaml
+      - data/raw
+    outs:
+      - data/interim/all.jsonl
+
+  validate:
+    cmd: python -m llmops.data.validate --config configs/data.yaml
+    deps:
+      - src/llmops/data/validate.py
+      - data_contracts/sft_schema.json
+      - data/interim/all.jsonl
+      - configs/data.yaml
+
+  redact_pii:
+    cmd: python -m llmops.data.redact_pii --config configs/data.yaml
+    deps:
+      - src/llmops/data/redact_pii.py
+      - data/interim/all.jsonl
+      - configs/data.yaml
+    outs:
+      - data/interim/redacted.jsonl
+
+  dedupe:
+    cmd: python -m llmops.data.dedupe --config configs/data.yaml
+    deps:
+      - src/llmops/data/dedupe.py
+      - data/interim/redacted.jsonl
+      - configs/data.yaml
+    outs:
+      - data/interim/deduped.jsonl
+
+  split:
+    cmd: python -m llmops.data.split --config configs/data.yaml
+    deps:
+      - src/llmops/data/split.py
+      - data/interim/deduped.jsonl
+      - configs/data.yaml
+    outs:
+      - data/processed/train.jsonl
+      - data/processed/eval.jsonl
+      - data/processed/test.jsonl
+
+  dataset_card:
+    cmd: python -m llmops.data.build_dataset_card --config configs/data.yaml
+    deps:
+      - src/llmops/data/build_dataset_card.py
+      - data/processed/train.jsonl
+      - data/processed/eval.jsonl
+      - data/processed/test.jsonl
+      - configs/data.yaml
+    outs:
+      - dataset_cards/generated.md
+
+  train:
+    cmd: python -m llmops.training.train_sft_lora --config configs/train.yaml
+    deps:
+      - src/llmops/training/train_sft_lora.py
+      - src/llmops/training/dataset_loader.py
+      - src/llmops/features
+      - data/processed/train.jsonl
+      - data/processed/eval.jsonl
+      - configs/train.yaml
+    outs:
+      - artifacts/adapter
+
+  eval_task:
+    cmd: python -m llmops.evaluation.task_eval --config configs/eval.yaml
+    deps:
+      - src/llmops/evaluation/task_eval.py
+      - src/llmops/evaluation/runner.py
+      - src/llmops/evaluation/judges.py
+      - src/llmops/features
+      - eval_sets/golden.jsonl
+      - configs/eval.yaml
+
+  eval_safety:
+    cmd: python -m llmops.evaluation.safety_eval --config configs/eval.yaml
+    deps:
+      - src/llmops/evaluation/safety_eval.py
+      - src/llmops/evaluation/runner.py
+      - src/llmops/evaluation/judges.py
+      - eval_sets/safety.jsonl
+      - configs/eval.yaml
+
+  eval_regression:
+    cmd: python -m llmops.evaluation.regression_eval --config configs/eval.yaml
+    deps:
+      - src/llmops/evaluation/regression_eval.py
+      - eval_sets/regression.jsonl
+      - configs/eval.yaml
+
+  eval_latency:
+    cmd: python -m llmops.evaluation.latency_eval --config configs/eval.yaml
+    deps:
+      - src/llmops/evaluation/latency_eval.py
+      - eval_sets/latency.jsonl
+      - configs/eval.yaml
+
+  gate:
+    cmd: python -m llmops.evaluation.gate --config configs/eval.yaml --metrics artifacts/eval/metrics.json
+    deps:
+      - src/llmops/evaluation/gate.py
+      - configs/eval.yaml
+      - artifacts/eval/metrics.json
+    outs:
+      - artifacts/eval/gate_report.json

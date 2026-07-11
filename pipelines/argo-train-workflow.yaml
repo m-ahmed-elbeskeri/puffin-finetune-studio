@@ -1,0 +1,161 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: puffin-train-
+  labels:
+    app: puffin
+    pipeline: train
+spec:
+  entrypoint: train-eval-gate
+  serviceAccountName: puffin-pipeline
+  ttlStrategy:
+    secondsAfterCompletion: 86400
+  arguments:
+    parameters:
+      - name: data-config
+        value: configs/data.yaml
+      - name: train-config
+        value: configs/train.yaml
+      - name: eval-config
+        value: configs/eval.yaml
+      - name: model-name
+        value: puffin-customer-support
+      - name: smoke-test
+        value: "false"
+      - name: train-image
+        value: ghcr.io/your-org/puffin-train:latest
+      - name: eval-image
+        value: ghcr.io/your-org/puffin-eval:latest
+
+  volumeClaimTemplates:
+    - metadata:
+        name: workspace
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 50Gi
+
+  templates:
+    - name: train-eval-gate
+      dag:
+        tasks:
+          - name: data
+            template: data-pipeline
+          - name: train
+            template: train
+            dependencies: [data]
+          - name: eval-task
+            template: eval-task
+            dependencies: [train]
+          - name: eval-safety
+            template: eval-safety
+            dependencies: [train]
+          - name: eval-regression
+            template: eval-regression
+            dependencies: [train]
+          - name: eval-latency
+            template: eval-latency
+            dependencies: [train]
+          - name: gate
+            template: gate
+            dependencies: [eval-task, eval-safety, eval-regression, eval-latency]
+          - name: register
+            template: register
+            dependencies: [gate]
+
+    - name: data-pipeline
+      container:
+        image: "{{workflow.parameters.train-image}}"
+        command: [bash, -lc]
+        args:
+          - |
+            set -e
+            python -m llmops.data.ingest --config {{workflow.parameters.data-config}}
+            python -m llmops.data.validate --config {{workflow.parameters.data-config}}
+            python -m llmops.data.redact_pii --config {{workflow.parameters.data-config}}
+            python -m llmops.data.dedupe --config {{workflow.parameters.data-config}}
+            python -m llmops.data.split --config {{workflow.parameters.data-config}}
+            python -m llmops.data.build_dataset_card --config {{workflow.parameters.data-config}}
+        volumeMounts:
+          - name: workspace
+            mountPath: /workspace
+        workingDir: /workspace
+
+    - name: train
+      container:
+        image: "{{workflow.parameters.train-image}}"
+        command: [bash, -lc]
+        args:
+          - |
+            set -e
+            EXTRA=""
+            if [ "{{workflow.parameters.smoke-test}}" = "true" ]; then EXTRA="--smoke-test"; fi
+            python -m llmops.training.train_sft_lora --config {{workflow.parameters.train-config}} $EXTRA
+        resources:
+          requests: { cpu: "4", memory: 16Gi }
+          limits:   { cpu: "8", memory: 32Gi, nvidia.com/gpu: "1" }
+        volumeMounts:
+          - name: workspace
+            mountPath: /workspace
+        workingDir: /workspace
+
+    - name: eval-task
+      container: &eval-container
+        image: "{{workflow.parameters.eval-image}}"
+        command: [python, -m, llmops.evaluation.task_eval, --config, "{{workflow.parameters.eval-config}}"]
+        volumeMounts:
+          - name: workspace
+            mountPath: /workspace
+        workingDir: /workspace
+
+    - name: eval-safety
+      container:
+        <<: *eval-container
+        command: [python, -m, llmops.evaluation.safety_eval, --config, "{{workflow.parameters.eval-config}}"]
+
+    - name: eval-regression
+      container:
+        <<: *eval-container
+        command: [python, -m, llmops.evaluation.regression_eval, --config, "{{workflow.parameters.eval-config}}"]
+
+    - name: eval-latency
+      container:
+        <<: *eval-container
+        command: [python, -m, llmops.evaluation.latency_eval, --config, "{{workflow.parameters.eval-config}}"]
+
+    - name: gate
+      container:
+        image: "{{workflow.parameters.eval-image}}"
+        command:
+          - python
+          - -m
+          - llmops.evaluation.gate
+          - --config
+          - "{{workflow.parameters.eval-config}}"
+          - --metrics
+          - artifacts/eval/metrics.json
+        volumeMounts:
+          - name: workspace
+            mountPath: /workspace
+        workingDir: /workspace
+
+    - name: register
+      container:
+        image: "{{workflow.parameters.train-image}}"
+        command:
+          - python
+          - -m
+          - llmops.training.push_model
+          - --model-dir
+          - artifacts/adapter
+          - --name
+          - "{{workflow.parameters.model-name}}"
+          - --alias
+          - candidate
+          - --metrics
+          - artifacts/eval/metrics.json
+        volumeMounts:
+          - name: workspace
+            mountPath: /workspace
+        workingDir: /workspace

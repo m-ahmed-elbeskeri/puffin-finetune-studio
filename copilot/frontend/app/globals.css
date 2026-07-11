@@ -1,0 +1,378 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =========================================================================
+   Riso palette — light + dark. Two saturated inks (Klein blue + fluoro
+   coral) on warm paper, deliberately offset. Values are "R G B" triplets
+   consumed by tailwind.config.ts via rgb(var(--x) / <alpha-value>).
+
+   The neutral `ink` scale is a WARM stone ramp that inverts between modes
+   (50 = paper ground, DEFAULT = near-black print). `acc` is the blue ink;
+   `fail` is retuned to the coral ink so destructive/critical states read as
+   the Riso second colour. `ok` stays green — a gate that PASSES must not be
+   ambiguous, so semantics beat theme there. `--coral` is exposed on its own
+   for the two-ink motifs (tab marker, offset shadows).
+   ========================================================================= */
+:root {
+  color-scheme: light;
+
+  /* warm stone: paper -> print */
+  --ink-50: 241 237 226;
+  --ink-100: 233 228 214;
+  --ink-200: 221 214 196;
+  --ink-300: 199 191 169;
+  --ink-400: 163 154 131;
+  --ink-500: 122 115 100;
+  --ink-600: 92 86 72;
+  --ink-700: 66 61 51;
+  --ink-800: 44 40 31;
+  --ink: 28 26 22;
+  --ink-900: 15 13 9;
+
+  --card: 251 250 245;
+  --card-muted: 243 239 230;
+
+  /* accent = Klein blue */
+  --acc-50: 233 234 255;
+  --acc-100: 212 214 251;
+  --acc-200: 179 183 245;
+  --acc-300: 139 144 238;
+  --acc-400: 88 96 226;
+  --acc-500: 43 52 214;
+  --acc-600: 32 41 176;
+  --acc-700: 26 34 144;
+  --acc-800: 21 27 115;
+  --acc-900: 16 21 79;
+
+  /* semantic OK — green stays green */
+  --ok-50: 231 242 236;
+  --ok-200: 184 216 198;
+  --ok-300: 143 192 166;
+  --ok-400: 82 165 120;
+  --ok-500: 47 125 82;
+  --ok-600: 39 107 70;
+  --ok-700: 32 88 57;
+  --ok-800: 26 71 46;
+
+  /* semantic FAIL — retuned to the coral ink */
+  --fail-50: 255 236 233;
+  --fail-200: 255 201 197;
+  --fail-300: 255 157 152;
+  --fail-400: 255 122 115;
+  --fail-500: 255 90 84;
+  --fail-600: 236 64 56;
+  --fail-700: 194 46 39;
+  --fail-800: 153 36 31;
+  --fail-900: 117 32 28;
+
+  --coral: 255 90 84;
+  --teal: 46 111 138;
+  --warn: 242 183 5;
+  --sidebar: 28 26 22;
+  --sidebar-muted: 38 34 25;
+  --shadow: 40 36 28;
+  --grid: 210 202 182;
+}
+
+.dark {
+  color-scheme: dark;
+
+  /* night print: warm near-black ground -> cream ink */
+  --ink-50: 19 17 9;
+  --ink-100: 27 24 16;
+  --ink-200: 44 39 24;
+  --ink-300: 63 57 34;
+  --ink-400: 106 98 73;
+  --ink-500: 164 154 131;
+  --ink-600: 194 185 161;
+  --ink-700: 216 208 189;
+  --ink-800: 232 225 209;
+  --ink: 239 233 216;
+  --ink-900: 246 241 228;
+
+  --card: 27 24 16;
+  --card-muted: 33 29 19;
+
+  --acc-50: 16 19 46;
+  --acc-100: 23 27 62;
+  --acc-200: 35 42 94;
+  --acc-300: 51 61 133;
+  --acc-400: 85 96 192;
+  --acc-500: 123 131 255;
+  --acc-600: 148 155 255;
+  --acc-700: 176 181 255;
+  --acc-800: 204 208 255;
+  --acc-900: 228 230 255;
+
+  --ok-50: 14 33 25;
+  --ok-200: 31 70 52;
+  --ok-300: 44 95 71;
+  --ok-400: 76 193 135;
+  --ok-500: 58 173 112;
+  --ok-600: 111 215 155;
+  --ok-700: 147 224 180;
+  --ok-800: 181 234 208;
+
+  --fail-50: 43 15 13;
+  --fail-200: 90 34 31;
+  --fail-300: 122 51 48;
+  --fail-400: 255 138 133;
+  --fail-500: 255 111 106;
+  --fail-600: 255 138 133;
+  --fail-700: 255 167 162;
+  --fail-800: 255 192 188;
+  --fail-900: 255 212 208;
+
+  --coral: 255 111 106;
+  --teal: 96 176 205;
+  --warn: 242 193 58;
+  --sidebar: 14 12 7;
+  --sidebar-muted: 23 21 14;
+  --shadow: 0 0 0;
+  --grid: 58 51 32;
+}
+
+html, body {
+  height: 100%;
+  background-color: rgb(var(--ink-50));
+  color: rgb(var(--ink));
+  font-family: var(--font-sans, Inter, system-ui, sans-serif);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Schematic dot-grid ground. Kept very faint so large empty regions read as
+   calm warm paper, not an "unfinished" grid. Opaque surfaces (sidebar, cards)
+   sit on top; the texture only whispers through the page gutters. */
+body {
+  background-image: radial-gradient(rgb(var(--grid) / 0.22) 1px, transparent 1px);
+  background-size: 26px 26px;
+  background-attachment: fixed;
+}
+
+/* Visible focus rings everywhere: WCAG 2.4.7. */
+*:focus-visible {
+  outline: 3px solid rgb(var(--acc-500)) !important;
+  outline-offset: 2px !important;
+  border-radius: 0;
+}
+
+/* Scrollbar polish (WebKit). */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--ink-400) / 0.4);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgb(var(--ink-400) / 0.6); }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* Reusable typography for markdown bodies. */
+.prose-puffin {
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.prose-puffin p { margin-bottom: 0.6rem; }
+.prose-puffin > :last-child { margin-bottom: 0; }
+.prose-puffin code:not(pre code) {
+  background: rgb(var(--ink-500) / 0.12);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.86em;
+}
+.prose-puffin pre {
+  background: #0f1c2e !important;
+  border-radius: 4px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  font-size: 0.82em;
+}
+.prose-puffin pre code {
+  background: transparent !important;
+  color: #e6edf5;
+}
+.prose-puffin h1, .prose-puffin h2, .prose-puffin h3 {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 1rem 0 0.4rem;
+}
+.prose-puffin h1 { font-size: 1.5rem; }
+.prose-puffin h2 { font-size: 1.2rem; }
+.prose-puffin h3 { font-size: 1.05rem; }
+.prose-puffin ul, .prose-puffin ol {
+  margin-left: 1.25rem;
+  margin-bottom: 0.6rem;
+}
+.prose-puffin ul { list-style: disc; }
+.prose-puffin ol { list-style: decimal; }
+.prose-puffin a {
+  color: rgb(var(--acc-600));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.prose-puffin blockquote {
+  border-left: 3px solid rgb(var(--acc-500));
+  padding-left: 0.9rem;
+  margin: 0.6rem 0;
+  color: rgb(var(--ink-500));
+}
+.prose-puffin hr {
+  border: 0;
+  border-top: 1px solid rgb(var(--ink-200));
+  margin: 1rem 0;
+}
+.prose-puffin table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin: 0.6rem 0;
+  font-size: 0.9em;
+}
+.prose-puffin th, .prose-puffin td {
+  border: 1px solid rgb(var(--ink-200));
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+.prose-puffin th {
+  background: rgb(var(--card-muted));
+  font-weight: 600;
+  white-space: nowrap;
+}
+.prose-puffin tbody tr:nth-child(even) { background: rgb(var(--ink-100) / 0.5); }
+
+/* Animated indicator for the "currently streaming" cursor. Attach to the
+   LAST child so the caret sits at the end of the flowing text instead of
+   on its own line under the block. */
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.cursor-blink > :last-child::after {
+  content: "▍";
+  margin-left: 1px;
+  color: rgb(var(--acc-500));
+  animation: blink 0.9s steps(2) infinite;
+}
+/* Fallback when the streaming block has no children yet. */
+.cursor-blink:empty::after {
+  content: "▍";
+  color: rgb(var(--acc-500));
+  animation: blink 0.9s steps(2) infinite;
+}
+
+/* The composer draws its own focus ring on the wrapper: silence the
+   global outline on the inner textarea so we don't double-ring. */
+.composer-input:focus-visible {
+  outline: none !important;
+}
+
+/* Form controls: give native checkboxes/radios a legible, theme-aware tick.
+   The browser's default tick colour goes low-contrast against the Riso accent
+   (near-white on light-blue in dark mode), so we draw our own. The checkmark
+   uses the ground colour (--ink-50), which inverts with the theme, so it always
+   contrasts the accent fill: paper-on-blue in light, near-black-on-blue in dark. */
+:root { accent-color: rgb(var(--acc-500)); }
+
+input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  vertical-align: middle;
+  display: inline-grid;
+  place-content: center;
+  border: 1.5px solid rgb(var(--ink-300));
+  background: rgb(var(--card));
+  cursor: pointer;
+  transition: background-color .12s ease, border-color .12s ease;
+}
+input[type="checkbox"]::before {
+  content: "";
+  width: 0.62rem;
+  height: 0.62rem;
+  transform: scale(0);
+  transition: transform .12s ease-in-out;
+  background: rgb(var(--ink-50));
+  clip-path: polygon(14% 44%, 0 65%, 43% 100%, 100% 20%, 82% 6%, 40% 62%);
+}
+input[type="checkbox"]:checked {
+  background: rgb(var(--acc-500));
+  border-color: rgb(var(--acc-500));
+}
+input[type="checkbox"]:checked::before { transform: scale(1); }
+input[type="checkbox"]:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+/* Keyboard-hint chips. */
+.kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid rgb(var(--ink-200));
+  border-bottom-width: 2px;
+  background: rgb(var(--card-muted));
+  color: rgb(var(--ink-500));
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  line-height: 1.4;
+}
+
+/* Text selection in the accent hue. */
+::selection {
+  background: rgb(var(--acc-500) / 0.26);
+}
+
+/* =========================================================================
+   Animated section tabs (Riso). The active marker is printed in two inks —
+   a blue pill and a coral ghost that lags a beat and settles, like a
+   risograph catching registration. Panels enter from the travel direction;
+   their children stagger up. Driven by --rx/--rw set in SectionTabs.tsx.
+   ========================================================================= */
+.rtabs-ind, .rtabs-ghost {
+  position: absolute;
+  z-index: 1;
+  bottom: -2px;
+  height: calc(100% - 6px);
+  transform: translateX(var(--rx, 0));
+  width: var(--rw, 0);
+  pointer-events: none;
+  border-radius: 2px;
+}
+.rtabs-ind {
+  background: rgb(var(--acc-500));
+  transition: transform .42s cubic-bezier(.34,1.56,.64,1),
+              width .42s cubic-bezier(.34,1.56,.64,1);
+}
+.rtabs-ghost {
+  background: rgb(var(--coral));
+  opacity: .9;
+  transition: transform .6s cubic-bezier(.34,1.56,.64,1) .04s,
+              width .6s cubic-bezier(.34,1.56,.64,1) .04s;
+}
+@keyframes rtabPanelIn { from { opacity: 0; transform: translateX(26px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes rtabPanelInRev { from { opacity: 0; transform: translateX(-26px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes rtabChildUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.rtab-panel { animation: rtabPanelIn .44s cubic-bezier(.34,1.56,.64,1) both; }
+.rtab-panel.rev { animation-name: rtabPanelInRev; }
+.rtab-panel > * { animation: rtabChildUp .5s cubic-bezier(.34,1.56,.64,1) both; }
+.rtab-panel > *:nth-child(1) { animation-delay: .05s; }
+.rtab-panel > *:nth-child(2) { animation-delay: .11s; }
+.rtab-panel > *:nth-child(3) { animation-delay: .17s; }
+.rtab-panel > *:nth-child(4) { animation-delay: .23s; }
+.rtab-panel > *:nth-child(5) { animation-delay: .29s; }
+.rtab-panel > *:nth-child(n+6) { animation-delay: .33s; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

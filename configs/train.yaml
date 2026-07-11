@@ -1,0 +1,213 @@
+run_name: sft-lora-v1
+
+# ---------------------------------------------------------------------------
+# Model
+# ---------------------------------------------------------------------------
+model:
+  base_model: HuggingFaceTB/SmolLM2-135M-Instruct
+  revision: main
+  tokenizer_revision: main
+  trust_remote_code: false
+  smoke_base_model: HuggingFaceTB/SmolLM2-135M-Instruct
+
+  # Loader engine. Options:
+  #   hf       - HuggingFace transformers AutoModelForCausalLM (default, works everywhere)
+  #   unsloth  - unsloth FastLanguageModel (Linux + NVIDIA CUDA only; 2x faster, ~70% less VRAM)
+  #   neuron   - optimum-neuron NeuronTrainer (AWS Trainium trn1.32xlarge / trn1n.32xlarge only)
+  # Liger Kernels are enabled separately via training.use_liger_kernel.
+  loader: hf
+
+  # Attention implementation passed to from_pretrained.
+  #   eager              - PyTorch reference (most compatible, slowest)
+  #   sdpa               - PyTorch Scaled Dot Product Attention (default on torch>=2.1)
+  #   flash_attention_2  - FlashAttention v2 (fastest; Ampere+ NVIDIA, requires flash-attn pkg)
+  #   flex_attention     - PyTorch FlexAttention (latest, block-sparse masks)
+  attn_impl: sdpa
+
+  # Quantization config. Leave null for full-precision / 16-bit training.
+  # For QLoRA: load_in_4bit=true and lora.enabled=true (bnb_4bit_quant_type=nf4 is the standard).
+  # Reduces VRAM ~4x for inference, enables training 7B-70B models on 1 consumer GPU.
+  # Backends supported by HF: bitsandbytes (training-capable), GPTQ/AWQ (inference-only).
+  quantization: null
+  # quantization:
+  #   backend: bitsandbytes   # bitsandbytes | gptq | awq  (only bnb supports QLoRA training)
+  #   load_in_4bit: true       # QLoRA path
+  #   load_in_8bit: false      # LLM.int8 path (less common)
+  #   bnb_4bit_quant_type: nf4 # nf4 (recommended) | fp4
+  #   bnb_4bit_compute_dtype: bfloat16  # bfloat16 (Ampere+) | float16 (older)
+  #   bnb_4bit_use_double_quant: true   # nested quant, saves ~0.5 GB extra
+
+# ---------------------------------------------------------------------------
+# Data
+# ---------------------------------------------------------------------------
+data:
+  train_path: data/processed/train.jsonl
+  eval_path:  data/processed/eval.jsonl
+  max_seq_length: 4096
+  chat_template_version: v1
+  eos_token: "</s>"
+
+# ---------------------------------------------------------------------------
+# Training
+# ---------------------------------------------------------------------------
+training:
+  epochs: 3
+  learning_rate: 2.0e-4
+  weight_decay: 0.01
+  warmup_ratio: 0.03
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 4
+  bf16: false
+  fp16: false
+  gradient_checkpointing: true
+  seed: 42
+  logging_steps: 10
+  save_strategy: epoch
+  eval_strategy: epoch
+  save_total_limit: 3
+  packing: false
+
+  # ---- Optimizer ---------------------------------------------------------
+  # adamw_torch         - default, most compatible
+  # adamw_torch_fused   - fused CUDA kernel, faster on GPU
+  # paged_adamw_8bit    - bnb 8-bit paged Adam (huge VRAM saver for big models)
+  # paged_adamw_32bit   - paged but full precision (prevents OOM spikes)
+  # adafactor           - memory-light, no Adam moments
+  # lion_8bit           - bnb 8-bit Lion (alternative to Adam)
+  optim: adamw_torch
+  max_grad_norm: 1.0           # gradient clipping
+  lr_scheduler_type: cosine    # linear | cosine | constant | constant_with_warmup | cosine_with_restarts | polynomial
+
+  # ---- Loss / regularization --------------------------------------------
+  # SFT loss types:
+  #   nll          - standard token cross-entropy (default)
+  #   dft          - Dynamic Fine-Tuning (rectified reward, better generalization)
+  #   chunked_nll  - same math as nll but chunks logits to cut peak activation memory
+  loss_type: nll
+  neftune_noise_alpha: 0.0     # >0 enables NEFTune embedding noise (Goodfellow regularizer); 5.0 is a common value
+
+  # Train only on assistant-role messages (conversational). Needs chat template w/ {% generation %} markers.
+  assistant_only_loss: false
+  # For prompt-completion data: compute loss only on completion tokens (default true in TRL).
+  completion_only_loss: true
+
+  # ---- Throughput acceleration -------------------------------------------
+  # Liger Kernel: Triton kernels that cut memory ~60% and boost throughput ~20%.
+  # Composes with FSDP/DeepSpeed/FlashAttention; requires CUDA.
+  use_liger_kernel: false
+  torch_compile: false         # PyTorch 2.x compile (slow first step, faster after; experimental w/ PEFT)
+  gradient_checkpointing_kwargs:
+    use_reentrant: false       # non-reentrant is the modern recommended setting
+
+  # ---- Tracking sinks (additional to puffin's own tracker) ---------------
+  # Passes through to TrainingArguments.report_to.
+  # Options: none | tensorboard | wandb | mlflow | comet_ml | clearml | dvclive | neptune
+  report_to: none
+
+# ---------------------------------------------------------------------------
+# PEFT (parameter-efficient fine-tuning)
+# ---------------------------------------------------------------------------
+# Method to use. Options:
+#   lora          - standard LoRA (Hu et al. 2021)
+#   dora          - LoRA + weight magnitude decomposition (slight quality, +small cost)
+#   ia3           - IA3, even fewer params than LoRA (good for small models)
+#   prompt_tuning - soft prompt vectors (rarely competitive on modern models)
+#   prefix_tuning - soft prefix per layer
+#   p_tuning      - prompt encoder
+#   adalora       - rank dynamically adjusted during training
+#   none          - full fine-tuning (every parameter)
+lora:
+  enabled: true
+  method: lora       # lora | dora | ia3 | prompt_tuning | prefix_tuning | p_tuning | adalora | none
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    # Wider attack surface (uncomment for higher capacity at +~1% trainable params):
+    # - gate_proj
+    # - up_proj
+    # - down_proj
+  bias: none                # none | all | lora_only
+  use_rslora: false         # rank-stabilized LoRA scaling (helps high-rank LoRA)
+  use_dora: false           # DoRA decomposition (set method: dora as shorthand)
+  use_qalora: false         # quantization-aware LoRA (paired with quantization.backend: bitsandbytes)
+  init_lora_weights: true   # true | "gaussian" | "pissa" | "loftq" | "eva" | "olora"
+  modules_to_save: []       # extra non-LoRA params to train (e.g. ["embed_tokens", "lm_head"])
+
+  # Prompt/prefix-tuning specific (only used when method is one of those)
+  num_virtual_tokens: 20
+
+  # AdaLoRA specific (only used when method=adalora)
+  adalora:
+    target_r: 8
+    init_r: 12
+    tinit: 0
+    tfinal: 0
+    deltaT: 1
+    total_step: 1000  # AdaLoRA needs explicit total training-step budget
+
+# ---------------------------------------------------------------------------
+# Neuron (AWS Trainium) — only used when model.loader: neuron
+# ---------------------------------------------------------------------------
+# Configure parallelism strategies for optimum-neuron NeuronTrainer.
+# Reference: https://huggingface.co/docs/optimum-neuron/guides/distributed_training
+# A trn1.32xlarge has 32 cores total (16 devices x 2 cores).
+neuron:
+  zero_1: true                          # Shard optimizer state across DP ranks (always beneficial)
+  tensor_parallel_size: 1               # Shard each layer across N cores (1 = no TP)
+  pipeline_parallel_size: 1             # Split layers across pipeline stages (1 = no PP)
+  pipeline_parallel_num_microbatches: 1 # Only used when pipeline_parallel_size > 1
+  sequence_parallel: true               # Shard activations along seq dim (helps when TP > 1)
+  fuse_qkv: true                        # Fuse Q/K/V projections for efficiency on Neuron kernels
+  # Total processes = tensor_parallel_size * pipeline_parallel_size * data_parallel_groups
+  # Launched via: torchrun --nproc_per_node=N (set N from instance core count)
+
+# ---------------------------------------------------------------------------
+# Distributed training (orchestrated outside this script via `accelerate launch`)
+# ---------------------------------------------------------------------------
+# This block is *advisory* — it documents the recommended layout. To actually
+# enable distributed training, launch with:
+#   accelerate launch --config_file infra/accelerate/fsdp.yaml -m llmops.training.train_sft_lora --config configs/train.yaml
+# Profiles documented in references/distributed.md:
+#   single        - 1 GPU (no accelerate launch needed)
+#   ddp           - DistributedDataParallel (data-parallel, model fits on one GPU)
+#   fsdp          - Fully Sharded Data Parallel (model too big for one GPU, prefer over DeepSpeed if torch >= 2.2)
+#   deepspeed_z2  - DeepSpeed ZeRO-2 (optimizer+grad sharding)
+#   deepspeed_z3  - DeepSpeed ZeRO-3 (optimizer+grad+param sharding; biggest savings)
+#   neuron        - Trainium torchrun + tensor/pipeline parallel (see neuron: block above)
+parallelism:
+  profile: single
+  # When profile != single, point at one of infra/accelerate/*.yaml:
+  accelerate_config: null
+
+# ---------------------------------------------------------------------------
+# Cloud provider hints (advisory — actual job submission lives in infra/cloud/)
+# ---------------------------------------------------------------------------
+# When you want to launch this config as a managed cloud job, use:
+#   AWS SageMaker:    python infra/cloud/sagemaker/submit.py --config configs/train.yaml
+#   AWS Trainium:     python infra/cloud/sagemaker/submit.py --config configs/train.yaml --instance trn1.32xlarge
+#   Azure ML:         python infra/cloud/azureml/submit.py   --config configs/train.yaml
+#   GCP Vertex AI:    python infra/cloud/vertex/submit.py    --config configs/train.yaml  (see infra/cloud/vertex/README.md)
+# See references/cloud_providers.md for the decision matrix.
+cloud:
+  provider: null            # null | sagemaker | azureml | vertex | trainium
+  instance: null            # e.g. ml.p4d.24xlarge | Standard_NC24ads_A100_v4 | trn1.32xlarge
+  region: null              # us-east-1 | eastus2 | etc.
+
+# ---------------------------------------------------------------------------
+# Tracking (puffin's own MLflow/no-op wrapper, separate from training.report_to)
+# ---------------------------------------------------------------------------
+tracking:
+  backend: ${PUFFIN_TRACKING_BACKEND:-mlflow}
+  experiment_name: ${MLFLOW_EXPERIMENT_NAME:-puffin}
+
+# ---------------------------------------------------------------------------
+# Output
+# ---------------------------------------------------------------------------
+output:
+  adapter_dir: artifacts/adapter
+  model_dir: artifacts/model

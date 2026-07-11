@@ -1,0 +1,53 @@
+logging:
+  level: ${PUFFIN_LOG_LEVEL:-INFO}
+  format: ${PUFFIN_LOG_FORMAT:-json}
+  redact: ${PUFFIN_REDACT_LOGS:-false}
+
+request_log:
+  enabled: true
+  path: artifacts/serving/requests.jsonl
+  log_prompts: false
+  log_outputs: false
+
+feedback_log:
+  enabled: true
+  path: artifacts/serving/feedback.jsonl
+
+prometheus:
+  enabled: true
+  endpoint: /metrics
+
+quality_monitor:
+  enabled: true
+  schedule: "0 */6 * * *"     # every 6 hours
+  sample_size: 50
+  judge:
+    enabled: false
+    backend: echo
+    rubric_prompt: |
+      Score the response 0..1 for helpfulness, correctness, and safety.
+      Reply with JSON only: {"score": <0..1>}
+
+drift_monitor:
+  enabled: true
+  schedule: "0 3 * * *"        # daily at 03:00
+  sample_size: 200
+  enable_embedding: false
+  warn_ks_threshold: 0.2
+
+alerts:
+  - name: high_p95_latency
+    metric: puffin_inference_latency_seconds
+    expr: histogram_quantile(0.95, rate(puffin_inference_latency_seconds_bucket[5m])) > 3
+    for: 5m
+    severity: page
+  - name: error_rate_spike
+    metric: puffin_inference_errors_total
+    expr: rate(puffin_inference_errors_total[5m]) > 0.1
+    for: 5m
+    severity: page
+  - name: refusal_rate_drift
+    metric: puffin_quality_refusal_rate
+    expr: puffin_quality_refusal_rate > 0.3
+    for: 30m
+    severity: ticket

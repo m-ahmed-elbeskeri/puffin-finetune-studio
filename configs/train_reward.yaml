@@ -1,0 +1,50 @@
+run_name: reward-v1
+
+model:
+  base_model: meta-llama/Llama-3.1-8B-Instruct
+  smoke_base_model: HuggingFaceTB/SmolLM2-135M-Instruct
+  loader: hf
+  attn_impl: sdpa
+  quantization: null
+
+# Reward data: preference pairs, same shape as DPO. {prompt?, chosen, rejected}.
+data:
+  train_path: data/processed/preference_train.jsonl
+  eval_path:  data/processed/preference_eval.jsonl
+  max_length: 1024
+  chat_template_version: v1
+
+training:
+  epochs: 1
+  learning_rate: 1.0e-5
+  weight_decay: 0.0
+  warmup_ratio: 0.03
+  lr_scheduler_type: cosine
+  per_device_train_batch_size: 2
+  gradient_accumulation_steps: 8
+  bf16: true
+  fp16: false
+  gradient_checkpointing: true
+  seed: 42
+  logging_steps: 10
+  save_strategy: epoch
+  save_total_limit: 3
+  max_grad_norm: 1.0
+  optim: adamw_torch
+  report_to: none
+
+lora:
+  enabled: true
+  method: lora
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules: [q_proj, k_proj, v_proj, o_proj]
+
+tracking:
+  backend: ${PUFFIN_TRACKING_BACKEND:-mlflow}
+  experiment_name: ${MLFLOW_EXPERIMENT_NAME:-puffin-reward}
+
+# A reward model is saved as a scalar-head classifier, not a chat adapter.
+output:
+  adapter_dir: artifacts/reward-model

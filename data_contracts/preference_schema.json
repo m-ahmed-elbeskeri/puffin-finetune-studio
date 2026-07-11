@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PuffinPreferenceExample",
+  "description": "One preference (chosen/rejected) example for DPO-style training.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["prompt", "chosen", "rejected"],
+  "properties": {
+    "id": {
+      "type": ["string", "null"],
+      "maxLength": 256
+    },
+    "prompt": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200000
+    },
+    "chosen": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200000
+    },
+    "rejected": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200000
+    },
+    "reason": {
+      "type": ["string", "null"],
+      "maxLength": 4096
+    },
+    "labeler_id": {
+      "type": ["string", "null"],
+      "maxLength": 128
+    }
+  }
+}

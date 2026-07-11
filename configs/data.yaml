@@ -1,0 +1,50 @@
+name: puffin-project
+description: |
+  Project-specific dataset. List one or more JSONL files in `sources`,
+  each path relative to the project root and satisfying the schema in
+  `data_contracts/<schema_filename>`. The data pipeline ingests every
+  source, validates it, then splits into train/eval/test. Redaction and
+  dedupe are optional transform scripts you run on the raw data first;
+  when they run, split reads their output automatically.
+
+contracts_dir: data_contracts
+schema_filename: sft_schema.json
+
+# Optional. Each entry: { name: <label>, path: <path-to-jsonl> }.
+# When empty, every *.jsonl in data/raw/ is auto-discovered as a source
+# (named after its file stem) — uploads from the copilot's Data page just
+# work. List sources explicitly to pin names, order, or files outside
+# data/raw/.
+sources: []
+
+paths:
+  interim:  data/interim/all.jsonl
+  redacted: data/interim/redacted.jsonl
+  deduped:  data/interim/deduped.jsonl
+  train:    data/processed/train.jsonl
+  eval:     data/processed/eval.jsonl
+  test:     data/processed/test.jsonl
+
+dataset_card: dataset_cards/generated.md
+
+forbidden_licenses:
+  - proprietary-noredistribute
+  - cc-by-nc-nd-4.0
+
+max_total_chars: 200000
+
+pii:
+  deny_terms: []
+
+dedupe:
+  jaccard_threshold: 0.85
+  num_perm: 128
+  shingle_k: 5
+
+split:
+  train: 0.7
+  eval: 0.15
+  test: 0.15
+  seed: 42
+  leakage_threshold: 0.9
+  leakage_max: 0

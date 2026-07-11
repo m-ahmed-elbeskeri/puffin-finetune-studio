@@ -1,0 +1,24 @@
+/** Inline puffin mark: mirrors app/icon.svg so avatars match the favicon. */
+export function PuffinMark({ size = 18 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 64 64"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <rect width="64" height="64" rx="14" fill="#0B1220" />
+      <ellipse cx="29" cy="40" rx="15" ry="16" fill="#F8FAFC" />
+      <path d="M14 38c0-9 6-16 15-16v32c-9 0-15-7-15-16z" fill="#1E293B" />
+      <circle cx="31" cy="24" r="13" fill="#F8FAFC" />
+      <path
+        d="M31 11a13 13 0 0 0-13 13c0 4 1.6 7.4 4.2 9.8C24 28 27 24 31 22.5V11z"
+        fill="#1E293B"
+      />
+      <path d="M42 18.5 57 24l-15 8c2.6-3 2.6-9.5 0-13.5z" fill="#F59E0B" />
+      <path d="M44.5 26.5 57 24l-15 8c1.6-1.8 2.4-3.6 2.5-5.5z" fill="#D97706" />
+      <circle cx="35.5" cy="21.5" r="2.2" fill="#0F172A" />
+    </svg>
+  );
+}

@@ -1,0 +1,60 @@
+run_name: rloo-v1
+
+model:
+  base_model: meta-llama/Llama-3.1-8B-Instruct
+  smoke_base_model: HuggingFaceTB/SmolLM2-135M-Instruct
+  loader: hf
+  attn_impl: sdpa
+  quantization: null
+
+# RLOO data: just prompts (same as GRPO).
+data:
+  train_path: data/processed/prompts_train.jsonl
+  max_prompt_length: 256
+  chat_template_version: v1
+
+training:
+  epochs: 1
+  learning_rate: 1.0e-6
+  weight_decay: 0.0
+  warmup_ratio: 0.0
+  lr_scheduler_type: constant
+  per_device_train_batch_size: 4
+  gradient_accumulation_steps: 4
+  bf16: true
+  fp16: false
+  gradient_checkpointing: true
+  seed: 42
+  logging_steps: 5
+  save_strategy: epoch
+  save_total_limit: 3
+  max_grad_norm: 1.0
+  optim: adamw_torch
+  report_to: none
+
+lora:
+  enabled: true
+  method: lora
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules: [q_proj, k_proj, v_proj, o_proj]
+
+# RLOO sampling. rloo_k = group size for the leave-one-out baseline.
+rloo:
+  num_generations: 4
+  rloo_k: 4
+  max_completion_length: 128
+  temperature: 0.9
+  kl_coef: 0.05
+
+reward:
+  target_chars: 200
+  keywords: []
+
+tracking:
+  backend: ${PUFFIN_TRACKING_BACKEND:-mlflow}
+  experiment_name: ${MLFLOW_EXPERIMENT_NAME:-puffin-rloo}
+
+output:
+  adapter_dir: artifacts/rloo-adapter

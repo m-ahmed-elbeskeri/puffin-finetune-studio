@@ -1,0 +1,26 @@
+profile: azure_ml
+
+storage:
+  backend: azure_blob
+  account_url: ${PUFFIN_AZURE_ACCOUNT_URL}
+  container: ${PUFFIN_AZURE_CONTAINER}
+
+registry:
+  backend: azure_ml
+  subscription_id: ${AZURE_SUBSCRIPTION_ID}
+  resource_group: ${AZURE_RESOURCE_GROUP}
+  workspace_name: ${AZUREML_WORKSPACE_NAME}
+
+deployment:
+  backend: azure_ml_endpoint
+
+pipelines:
+  backend: none
+
+tracking:
+  backend: mlflow
+  uri: ${MLFLOW_TRACKING_URI:-file:./mlruns}
+
+server:
+  backend: vllm
+  model_id: ${PUFFIN_MODEL_ID}

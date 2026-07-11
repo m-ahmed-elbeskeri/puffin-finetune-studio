@@ -1,0 +1,27 @@
+profile: aws_sagemaker
+
+storage:
+  backend: s3
+  bucket: ${PUFFIN_S3_BUCKET}
+  region: ${AWS_REGION:-us-east-1}
+
+registry:
+  backend: sagemaker
+  region: ${AWS_REGION:-us-east-1}
+  role_arn: ${AWS_SAGEMAKER_ROLE_ARN}
+
+deployment:
+  backend: sagemaker_endpoint
+  region: ${AWS_REGION:-us-east-1}
+  role_arn: ${AWS_SAGEMAKER_ROLE_ARN}
+
+pipelines:
+  backend: none
+
+tracking:
+  backend: mlflow
+  uri: ${MLFLOW_TRACKING_URI:-file:./mlruns}
+
+server:
+  backend: vllm
+  model_id: ${PUFFIN_MODEL_ID}

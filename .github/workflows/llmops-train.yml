@@ -1,0 +1,66 @@
+name: llmops-train
+
+on:
+  workflow_dispatch:
+    inputs:
+      config:
+        description: "Path to training config"
+        default: configs/train.yaml
+        required: true
+      smoke_test:
+        description: "Run a smoke training instead of a full run"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  train-and-eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: uv python install 3.11
+      - run: uv pip install --system -e ".[train,data,eval,mlflow]"
+
+      - name: Build dataset
+        run: |
+          uv run python -m llmops.data.ingest --config configs/data.yaml
+          uv run python -m llmops.data.validate --config configs/data.yaml
+          uv run python -m llmops.data.redact_pii --config configs/data.yaml
+          uv run python -m llmops.data.dedupe --config configs/data.yaml
+          uv run python -m llmops.data.split --config configs/data.yaml
+          uv run python -m llmops.data.build_dataset_card --config configs/data.yaml
+
+      - name: Train
+        run: |
+          if [ "${{ inputs.smoke_test }}" = "true" ]; then
+            uv run python -m llmops.training.train_sft_lora --config "${{ inputs.config }}" --smoke-test
+          else
+            uv run python -m llmops.training.train_sft_lora --config "${{ inputs.config }}"
+          fi
+
+      - name: Evaluate
+        env:
+          PUFFIN_EVAL_BACKEND: echo
+        run: |
+          uv run python -m llmops.evaluation.task_eval       --config configs/eval.yaml
+          uv run python -m llmops.evaluation.safety_eval     --config configs/eval.yaml
+          uv run python -m llmops.evaluation.regression_eval --config configs/eval.yaml
+          uv run python -m llmops.evaluation.latency_eval    --config configs/eval.yaml
+
+      - name: Apply promotion gate
+        env:
+          PUFFIN_EVAL_BACKEND: echo
+        run: uv run python -m llmops.evaluation.gate --config configs/eval.yaml --metrics artifacts/eval/metrics.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: model-and-metrics-${{ github.run_id }}
+          path: |
+            artifacts/adapter
+            artifacts/eval
+            dataset_cards/generated.md

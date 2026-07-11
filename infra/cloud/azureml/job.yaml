@@ -1,0 +1,63 @@
+# Azure ML command-job template for puffin-finetune-studio.
+# Reference: https://learn.microsoft.com/azure/machine-learning/reference-yaml-job-command
+# Submit with: az ml job create --file infra/cloud/azureml/job.yaml --workspace-name <ws> --resource-group <rg>
+# Or programmatically: python infra/cloud/azureml/submit.py --config configs/train.yaml
+
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+type: command
+
+display_name: puffin-sft-lora
+description: SFT + LoRA training run from puffin-finetune-studio.
+experiment_name: puffin-finetune
+
+code: ../../..   # repo root (relative to this file)
+
+# Environment: HF + TRL + PEFT preinstalled by Microsoft. Use the latest curated env.
+# Reference: https://learn.microsoft.com/azure/machine-learning/concept-environments
+environment: azureml://registries/HuggingFace/environments/transformers-pytorch-gpu/labels/latest
+
+# Override the env if you need a custom Docker image (e.g. for flash-attn 2):
+# environment:
+#   image: mcr.microsoft.com/azureml/curated/acpt-pytorch-2.2-cuda12.1:latest
+#   conda_file: environment.yml
+
+command: >-
+  pip install --no-deps -e . &&
+  python -m llmops.training.train_sft_lora --config ${{inputs.train_config}}
+
+inputs:
+  train_config:
+    type: uri_file
+    path: ../../../configs/train.yaml
+
+outputs:
+  artifacts:
+    type: uri_folder
+    mode: rw_mount
+
+# Compute target. Sized for QLoRA on a 7B model.
+# Other choices:
+#   Standard_NC24ads_A100_v4   - 1x A100 80GB  (~$3.67/hr)
+#   Standard_ND96asr_v4         - 8x A100 40GB (~$27.20/hr)
+#   Standard_ND96isr_H100_v5    - 8x H100 80GB (premium)
+#   Standard_NC8as_T4_v3        - 1x T4 16GB   (cheap; fp16 only)
+compute: azureml:gpu-cluster   # name of an existing AmlCompute; create with az ml compute create
+
+resources:
+  instance_count: 1            # bump for multi-node FSDP/DeepSpeed via distribution.type
+  shm_size: 16g                # important for HF datasets caching
+
+# Multi-node distributed: uncomment to use accelerate launch
+# distribution:
+#   type: pytorch
+#   process_count_per_instance: 8
+
+environment_variables:
+  PYTHONUTF8: "1"
+  HF_HUB_DISABLE_PROGRESS_BARS: "1"
+  TRANSFORMERS_VERBOSITY: "error"
+  # HF_TOKEN must be configured as a workspace secret:
+  # HF_TOKEN: ${{secrets.HF_TOKEN}}
+
+services:
+  # Optional MLflow tracking is automatic in AzureML — set in train.yaml::tracking.backend

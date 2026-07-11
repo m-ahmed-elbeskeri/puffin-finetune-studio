@@ -1,0 +1,26 @@
+profile: kubernetes_vllm
+
+storage:
+  backend: ${PUFFIN_STORAGE_BACKEND:-s3}
+  bucket: ${PUFFIN_S3_BUCKET}
+
+registry:
+  backend: mlflow
+  tracking_uri: ${MLFLOW_TRACKING_URI}
+
+deployment:
+  backend: kubernetes
+  namespace: ${PUFFIN_K8S_NAMESPACE:-puffin}
+  context: ${PUFFIN_K8S_CONTEXT}
+  serving_image: ${PUFFIN_K8S_SERVING_IMAGE:-puffin-serve:latest}
+
+pipelines:
+  backend: none
+
+tracking:
+  backend: mlflow
+  uri: ${MLFLOW_TRACKING_URI:-file:./mlruns}
+
+server:
+  backend: vllm
+  model_id: ${PUFFIN_MODEL_ID}

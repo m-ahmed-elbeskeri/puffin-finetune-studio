@@ -1,0 +1,28 @@
+profile: gcp_vertex
+
+storage:
+  backend: gcs
+  bucket: ${PUFFIN_GCS_BUCKET}
+
+registry:
+  backend: vertex_ai
+  project: ${GCP_PROJECT_ID}
+  location: ${GCP_REGION:-us-central1}
+
+deployment:
+  backend: vertex_endpoint
+  project: ${GCP_PROJECT_ID}
+  location: ${GCP_REGION:-us-central1}
+
+pipelines:
+  backend: vertex_pipelines
+  project: ${GCP_PROJECT_ID}
+  location: ${GCP_REGION:-us-central1}
+
+tracking:
+  backend: mlflow
+  uri: ${MLFLOW_TRACKING_URI:-file:./mlruns}
+
+server:
+  backend: vllm
+  model_id: ${PUFFIN_MODEL_ID}

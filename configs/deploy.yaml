@@ -1,0 +1,42 @@
+deployment:
+  environment: ${PUFFIN_ENV:-staging}
+  serving_backend: ${PUFFIN_SERVE_BACKEND:-transformers}
+  deployment_target: local
+
+model:
+  registry: mlflow
+  name: my-model
+  alias: staging
+
+server:
+  # backend: transformers | vllm
+  backend: ${PUFFIN_SERVE_BACKEND:-transformers}
+  model_id: HuggingFaceTB/SmolLM2-135M-Instruct
+  adapter_path: artifacts/adapter
+  chat_template_version: v1
+  device: null            # null → auto (cuda if available)
+  quantization: null      # null | 4bit | 8bit
+  tensor_parallel_size: 1
+  gpu_memory_utilization: 0.9
+
+guardrails:
+  max_input_chars: 200000
+  max_output_chars: 50000
+  max_messages: 64
+  require_user_message: true
+  banned_input_patterns: []
+  banned_output_patterns: []
+
+traffic:
+  rollout_strategy: canary
+  initial_percentage: 1
+  rollback_on_error_rate: 0.02
+  rollback_on_latency_p95_ms: 3000
+
+observability:
+  log_prompts: false       # set to true ONLY in staging or with consent
+  log_outputs: false
+  request_log_path: artifacts/serving/requests.jsonl
+  feedback_log_path: artifacts/serving/feedback.jsonl
+  metrics_enabled: true
+  tracing_enabled: false

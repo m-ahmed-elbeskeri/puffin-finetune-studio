@@ -1,0 +1,23 @@
+profile: local
+
+storage:
+  backend: local
+  root: ./artifacts
+
+registry:
+  backend: local
+  root: ./artifacts
+
+deployment:
+  backend: local
+  root: ./artifacts
+
+pipelines:
+  backend: none
+
+tracking:
+  backend: mlflow
+  uri: file:./mlruns
+
+server:
+  backend: echo

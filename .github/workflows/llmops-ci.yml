@@ -1,0 +1,125 @@
+name: llmops-ci
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint-test:
+    name: lint + unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Install package + dev extras
+        run: uv pip install --system -e ".[data,eval,dev]"
+
+      - name: Ruff check
+        run: uv run ruff check src tests
+
+      - name: Ruff format check
+        run: uv run ruff format --check src tests
+
+      - name: mypy (warnings only)
+        run: uv run mypy src/llmops || true
+
+      - name: Pytest (fast)
+        env:
+          PUFFIN_LOG_FORMAT: text
+        run: uv run pytest tests -m "not gpu and not network and not slow and not integration" --cov=src/llmops --cov-report=xml
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ github.run_id }}
+          path: coverage.xml
+          if-no-files-found: ignore
+
+  data-validate:
+    name: data validation smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: uv python install 3.11
+      - run: uv pip install --system -e ".[data,eval]"
+      - run: uv run python -m llmops.data.ingest --config configs/data.yaml
+      - run: uv run python -m llmops.data.validate --config configs/data.yaml
+      - run: uv run python -m llmops.data.redact_pii --config configs/data.yaml
+      - run: uv run python -m llmops.data.dedupe --config configs/data.yaml
+      - run: uv run python -m llmops.data.split --config configs/data.yaml
+      - run: uv run python -m llmops.data.build_dataset_card --config configs/data.yaml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dataset-card-${{ github.run_id }}
+          path: dataset_cards/generated.md
+
+  eval-smoke:
+    name: eval smoke (echo backend)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: uv python install 3.11
+      - run: uv pip install --system -e ".[data,eval]"
+      - name: Run eval suite (echo backend)
+        env:
+          PUFFIN_EVAL_BACKEND: echo
+        run: |
+          uv run python -m llmops.evaluation.task_eval       --config configs/eval.yaml
+          uv run python -m llmops.evaluation.safety_eval     --config configs/eval.yaml
+          uv run python -m llmops.evaluation.regression_eval --config configs/eval.yaml
+          uv run python -m llmops.evaluation.latency_eval    --config configs/eval.yaml
+      - name: Apply gate
+        env:
+          PUFFIN_EVAL_BACKEND: echo
+        run: uv run python -m llmops.evaluation.gate --config configs/eval.yaml --metrics artifacts/eval/metrics.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eval-metrics-${{ github.run_id }}
+          path: artifacts/eval/
+
+  docker-build:
+    name: docker build (dry verify)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build serve image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: infra/docker/Dockerfile.serve
+          push: false
+          tags: puffin-serve:ci-${{ github.run_id }}
+      - name: Build eval image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: infra/docker/Dockerfile.eval
+          push: false
+          tags: puffin-eval:ci-${{ github.run_id }}
