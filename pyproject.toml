@@ -93,6 +93,7 @@ copilot = [
   "sse-starlette>=2.1",
   "python-multipart>=0.0.9",
   "psutil>=5.9",
+  "ruamel.yaml>=0.18",
 ]
 all = [
   "puffin-finetune-studio[data,train,serve,eval,mlflow,copilot]",
