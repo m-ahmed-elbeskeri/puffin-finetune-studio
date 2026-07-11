@@ -1,7 +1,7 @@
 [project]
 name = "puffin-finetune-studio"
 version = "0.1.0"
-description = "Cloud-portable LLM fine-tuning template — golden-path repo for SFT/LoRA/DPO with eval gates, registry, monitoring, and provider adapters."
+description = "A visual studio for fine-tuning open LLMs (SFT/LoRA/DPO), backed by a config-driven MLOps engine with eval gates, a model registry, monitoring, and cloud-portable serving."
 requires-python = ">=3.11"
 license = { text = "Apache-2.0" }
 authors = [{ name = "puffin" }]

@@ -2,11 +2,12 @@
 
 # puffin-finetune-studio
 
-**The golden-path platform for fine-tuning open LLMs, and shipping them safely.**
+**A visual studio for fine-tuning open LLMs, backed by a production MLOps engine.**
 
-Config-driven SFT / LoRA / DPO with reproducible lineage, hard eval gates, a model
-registry, production monitoring, cloud-portable serving, and an AI copilot you open
-with a single command.
+Do the whole workflow (data, training, evals, deploy, monitoring) in your browser or by
+chatting with an AI. Under the hood is a reproducible, config-driven engine (SFT / LoRA /
+DPO with eval gates, a model registry, and cloud-portable serving) that you can also drive
+headless from the CLI.
 
 [![CI](https://github.com/m-ahmed-elbeskeri/puffin-finetune-studio/actions/workflows/llmops-ci.yml/badge.svg)](https://github.com/m-ahmed-elbeskeri/puffin-finetune-studio/actions/workflows/llmops-ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
@@ -14,11 +15,11 @@ with a single command.
 [![Code style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-[Quickstart](#quickstart) · [Why](#why-puffin) · [Architecture](#architecture) · [The Copilot](#the-copilot) · [Docs](#documentation) · [Contributing](#contributing)
+[Quickstart](#quickstart) · [The Studio](#the-studio) · [Why](#why-a-studio) · [Under the hood](#under-the-hood-the-engine) · [Docs](#documentation) · [Contributing](#contributing)
 
 <br>
 
-<img src="docs/images/dashboard.png" alt="Puffin Copilot dashboard: KPI tiles, latest run, promotion gate, serving and data status" width="880">
+<img src="docs/images/dashboard.png" alt="Puffin Studio dashboard: KPI tiles, latest run, promotion gate, serving and data status" width="880">
 
 </div>
 
@@ -27,34 +28,35 @@ with a single command.
 ## TL;DR
 
 ```bash
-pip install -e ".[copilot]"
-finetune-copilot          # opens the dashboard in your browser
+pip install "puffin-finetune-studio[copilot]"
+finetune-copilot          # opens Puffin Studio in your browser
 ```
 
-That one command starts the backend and the web UI, waits for both, and lands you on a
-point-and-click fine-tuning studio. Prefer the terminal? The `puffin` CLI runs the same
-golden path (data → train → evaluate → gate → serve) with no code changes for ~80% of
-projects, just YAML.
+That one command starts the engine and the web UI, waits for both, and drops you into a
+point-and-click (or chat-driven) workspace for the whole fine-tuning lifecycle. Everything
+the studio does, the engine underneath also exposes as the `puffin` CLI and a Python API,
+so you can automate the exact same workflow in CI.
 
 > **The reusable contract:** a new project is a new config plus a new dataset plus new evals.
 > Not a new platform every time.
 
 ---
 
-## Why puffin?
+## Why a studio?
 
-Most teams rebuild the same fragile scaffolding for every fine-tune: a training script here,
-an eval notebook there, a serving app that quietly drifts out of sync with training. puffin
-turns that into one opinionated, tested platform.
+Fine-tuning usually lives in a pile of one-off scripts and notebooks only the ML engineer
+can drive, on top of a training/serving stack that quietly drifts out of sync. Puffin makes
+it a **studio anyone on the team can use**, backed by an engine that keeps every run
+reproducible and production-safe.
 
-| Problem you hit every time | What puffin gives you |
+| The usual pain | What the studio + engine give you |
 | --- | --- |
-| Training/serving skew (the #1 silent failure) | Training and serving import the **same** prompt builder, chat template, tokenizer, and schemas from `src/llmops/features/`. |
+| Fine-tuning is expert-only, CLI-only | A visual studio: pick a recipe or tune every knob, run the pipeline, evals, and deploy from the browser, or just **ask the AI** to do it. |
+| Training/serving skew (the #1 silent failure) | Training and serving share the **same** prompt builder, chat template, tokenizer, and schemas (`src/llmops/features/`). |
 | "Which data/model/seed produced this?" | Every run records git SHA, config hash, dataset version, base-model revision, seed, and package versions. |
-| A bad model reaches production | A **hard promotion gate** on task / safety / regression / latency thresholds that exits non-zero on failure. |
+| A bad model reaches production | A **hard promotion gate** on task / safety / regression / latency that blocks the release. |
 | Locked into one cloud | Provider adapters for `local`, `gcp`, `aws`, `azure`, `kubernetes`, selected in config. |
-| Fine-tuning is expert-only | The **Copilot** makes it point-and-click (or chat), with plain-English recipes from smoke test to QLoRA to DPO. |
-| No visibility in production | JSON structured logs with PII redaction, Prometheus metrics, a drift monitor, and an LLM-judge quality monitor. |
+| No visibility in production | Built-in request logs (PII-redacted), Prometheus metrics, a drift monitor, and an LLM-judge quality monitor, all on the Monitor page. |
 
 ---
 
@@ -63,61 +65,83 @@ turns that into one opinionated, tested platform.
 ### Prerequisites
 
 - Python **3.11+**
-- Node.js **18.18+** (only for the Copilot web UI)
+- Node.js **18.18+** (for the studio web UI)
 - ~1 GB free disk for the smoke model; no GPU required for the smoke path
 
-### Option A: the Copilot (point-and-click)
+### Open the studio
 
 ```bash
-pip install -e ".[copilot]"
+pip install "puffin-finetune-studio[copilot]"
 
-# optional: set a key to unlock chat (the dashboard works without it)
+# optional: unlock the AI chat (the studio itself works without it)
 export ANTHROPIC_API_KEY="sk-ant-..."     # PowerShell: $env:ANTHROPIC_API_KEY="sk-ant-..."
 
-finetune-copilot                          # backend + web UI, opens your browser
+finetune-copilot                          # starts everything, opens your browser
 ```
 
-`finetune-copilot` installs the frontend's npm deps on first run, starts everything, and
-opens the dashboard. `finetune-copilot doctor` checks your environment; `finetune-copilot
---prod` serves a prebuilt UI from a single port with no Node.js at runtime. See
-[copilot/README.md](copilot/README.md) for the full tour.
+`finetune-copilot` installs the frontend's npm deps on first run, launches the engine + UI,
+and opens the studio. `finetune-copilot doctor` checks your environment; `finetune-copilot
+--prod` serves a prebuilt UI from a single port with no Node.js at runtime.
 
-No `ANTHROPIC_API_KEY`? The Copilot also drives any local agent CLI you already have
-installed and authed (Claude Code, Codex, Gemini, Qwen, OpenCode, Cursor, GitHub Copilot).
+No `ANTHROPIC_API_KEY`? The chat also drives any local agent CLI you already have installed
+and authed (Claude Code, Codex, Gemini, Qwen, OpenCode, Cursor, GitHub Copilot).
 
-### Option B: the CLI golden path
+### Or drive the engine headless (CLI / CI)
+
+Prefer YAML and a terminal, or automating in CI? Clone the repo and run the same golden path
+without the UI:
 
 ```bash
-# Linux / macOS
+git clone https://github.com/m-ahmed-elbeskeri/puffin-finetune-studio
+cd puffin-finetune-studio
 cp .env.example .env
-make setup           # install dev + train extras
-make test-fast
-make data-validate
-make train-smoke     # tiny CPU smoke train (SmolLM2-135M by default, < 1 min)
-make evaluate
+make setup           # engine + dev extras
+make train-smoke     # tiny CPU smoke train (SmolLM2-135M, < 1 min)
 make gate            # exits non-zero if thresholds are missed
 make serve           # FastAPI on :8080
 ```
 
-```powershell
-# Windows PowerShell: same targets via make.ps1
-copy .env.example .env
-.\make.ps1 setup
-.\make.ps1 train-smoke
-.\make.ps1 gate
-.\make.ps1 serve
-```
-
-The template ships with **no training data**. Drop your JSONL into `data/raw/`, list it under
-`sources:` in `configs/data.yaml`, and the pipeline plus smoke train run end-to-end on a
-laptop CPU. A 20-row reference dataset lives at `tests/fixtures/example.jsonl`.
+(Windows: the same targets via `.\make.ps1 <target>`.) The project ships with **no training
+data**. Drop your JSONL into `data/raw/`, or upload it in the studio's Data page; a 20-row
+reference dataset lives at `tests/fixtures/example.jsonl`.
 
 ---
 
-## Architecture
+## The Studio
 
-The whole platform is driven by YAML configs. Training and serving share one feature layer so
-they can never drift apart, the single most common fine-tuning failure.
+Puffin Studio (a Next.js + FastAPI app, opened with `finetune-copilot`) is the main way to
+use the platform: the whole fine-tuning lifecycle as pages you click through, with an AI
+copilot that can do any of it for you.
+
+- **Train Studio** (`/train`): pick a curated recipe (smoke → style tune → domain adaptation →
+  QLoRA → full fine-tune → DPO) or open the full knob editor, with a Beginner/Intermediate/
+  Advanced toggle, YAML preview, GPU-aware warnings, and a smoke-first launch.
+- **A page for every stage:** Data, Train, Runs, Evaluate, Deploy, Monitor, Playground, each
+  with one-click actions (audit data, run the pipeline, run evals + gate, push/promote,
+  diagnose drift). `Ctrl/Cmd+K` opens a page-aware command bar.
+- **Ask the AI instead:** the copilot has tool-use access to the whole engine, so you can just
+  say "run a smoke train then the gate." Chat through the Anthropic or OpenAI APIs, or through
+  any local agent CLI you already have (Claude Code, Codex, Gemini, Qwen, OpenCode, Cursor,
+  GitHub Copilot), auto-detected in the model picker.
+- **One command, clean teardown:** `finetune-copilot` starts the engine + UI and opens your
+  browser; Ctrl+C stops both.
+
+<table>
+<tr>
+<td width="50%"><img src="docs/images/train-studio.png" alt="Train Studio: pick a method (SFT/LoRA, DPO, KTO, reward, GRPO, RLOO) or tune every knob, with live GPU detection"><br><div align="center"><sub><b>Train Studio</b>: recipes or a full knob editor, GPU-aware</sub></div></td>
+<td width="50%"><img src="docs/images/monitor.png" alt="Monitor: latency over time, token throughput, quality and drift"><br><div align="center"><sub><b>Monitor</b>: latency, throughput, quality, drift</sub></div></td>
+</tr>
+</table>
+
+<div align="center"><em>Full page list, provider matrix, and tool catalogue in <a href="copilot/README.md">copilot/README.md</a>.</em></div>
+
+---
+
+## Under the hood: the engine
+
+The studio is a thin, friendly surface over a config-driven engine. Every button, chat action,
+and CLI command drives the same YAML-configured pipeline below, and training and serving share
+one feature layer so they can never drift apart (the single most common fine-tuning failure).
 
 ```text
 ┌──────────────────────────────────────────────────────────┐
@@ -163,31 +187,6 @@ they can never drift apart, the single most common fine-tuning failure.
         │  / drift / judge │ ──── feedback loop ───┘
         └──────────────────┘
 ```
-
----
-
-## The Copilot
-
-`copilot/` is an optional Next.js + FastAPI dashboard that gives the whole `llmops.*`
-codebase a friendly face and an AI chat with tool-use access to it.
-
-- **One command to open it:** `finetune-copilot` (backend + UI + browser, clean Ctrl+C teardown).
-- **Train Studio** (`/train`): curated recipes (smoke → style tune → domain adaptation → QLoRA →
-  full fine-tune → DPO) with a Beginner/Intermediate/Advanced knob editor, YAML preview, and a
-  smoke-first launch flow.
-- **Provider-agnostic:** chat through the Anthropic or OpenAI APIs, or through any local agent
-  CLI you already have. Installed CLIs are auto-detected in the model picker.
-- **Every page has AI actions:** audit data, run the pipeline, run evals + gate, push/promote,
-  diagnose drift. `Ctrl/Cmd+K` opens a page-aware command bar.
-
-<table>
-<tr>
-<td width="50%"><img src="docs/images/train-studio.png" alt="Train Studio: pick a method (SFT/LoRA, DPO, KTO, reward, GRPO, RLOO) or tune every knob, with live GPU detection"><br><div align="center"><sub><b>Train Studio</b>: recipes or a full knob editor, GPU-aware</sub></div></td>
-<td width="50%"><img src="docs/images/monitor.png" alt="Monitor: latency over time, token throughput, quality and drift"><br><div align="center"><sub><b>Monitor</b>: latency, throughput, quality, drift</sub></div></td>
-</tr>
-</table>
-
-<div align="center"><em>Full page list, provider matrix, and tool catalogue in <a href="copilot/README.md">copilot/README.md</a>.</em></div>
 
 ---
 
