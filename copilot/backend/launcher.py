@@ -85,10 +85,28 @@ def die(msg: str, code: int = 1) -> int:
 # --------------------------------------------------------------------------
 # Networking helpers
 # --------------------------------------------------------------------------
+def _port_has_listener(port: int) -> bool:
+    """True if any process is already listening on `port`, on any interface or
+    address family. A plain IPv4 bind-probe misses this: Next's dev server binds
+    IPv6 (``::``), so a leftover ``:::3000`` listener is invisible to a
+    ``127.0.0.1`` bind and we'd hand Next a port it then fails to grab."""
+    try:
+        for conn in psutil.net_connections(kind="inet"):
+            if conn.status == psutil.CONN_LISTEN and conn.laddr and conn.laddr.port == port:
+                return True
+    except (psutil.Error, OSError):
+        pass  # permission/enumeration failure -> rely on the bind probe below
+    return False
+
+
 def _port_is_free(host: str, port: int) -> bool:
-    # No SO_REUSEADDR here: we're probing availability, not reusing. On Windows
-    # SO_REUSEADDR lets you bind an already-bound port, which would falsely
-    # report a busy port as free.
+    # Over-detecting "busy" is safe (we just bump to the next port); under-
+    # detecting crashes the child. So first ask the OS whether anything is
+    # listening on this port at all (any family/interface), then also try to
+    # bind it. No SO_REUSEADDR: on Windows it would let us bind an already-bound
+    # address and falsely report a busy port as free.
+    if _port_has_listener(port):
+        return False
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         try:
             sock.bind((host, port))
@@ -495,15 +513,19 @@ def _start_backend(
                   prefix_output=prefix)
 
 
-def _start_frontend(port: int, env: dict[str, str], *, prefix: bool) -> Proc:
+def _start_frontend(port: int, host: str, env: dict[str, str], *, prefix: bool) -> Proc:
     # Invoke the project-local `next` directly so we set the port exactly once.
     # (`npm run dev` hardcodes `-p 3000` in package.json; appending another -p
     # would leave two conflicting flags.)
+    # `-H host` binds the same interface we probe with _port_is_free and, by
+    # default, keeps the dev server on loopback (matching the backend) instead
+    # of all interfaces.
+    flags = ["dev", "--turbo", "-H", host, "-p", str(port)]
     next_bin = _next_bin()
     if next_bin is not None:
-        argv = [next_bin, "dev", "--turbo", "-p", str(port)]
+        argv = [next_bin, *flags]
     else:  # deps not installed via the .bin shim; fall back to npm exec
-        argv = _npm("exec", "--", "next", "dev", "--turbo", "-p", str(port))
+        argv = _npm("exec", "--", "next", *flags)
     return _spawn("frontend", argv, cwd=FRONTEND_DIR, env=env, color="36",
                   prefix_output=prefix)
 
@@ -571,7 +593,7 @@ def cmd_up(args: argparse.Namespace) -> int:
                 host, backend_port, env, reload=args.reload, prefix=prefix,
                 frontend_dist=None)
             procs.append(backend)
-            frontend = _start_frontend(frontend_port, env, prefix=prefix)
+            frontend = _start_frontend(frontend_port, host, env, prefix=prefix)
             procs.append(frontend)
             app_url = f"http://{browse_host}:{frontend_port}"
 

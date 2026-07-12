@@ -43,6 +43,22 @@ def test_port_is_free_detects_listener():
         assert launcher._port_is_free("127.0.0.1", taken) is False
 
 
+def test_port_is_free_detects_ipv6_listener():
+    # Regression: Next binds `::` (IPv6). A plain 127.0.0.1 bind-probe would say
+    # such a port is free and hand it to Next, which then dies with EADDRINUSE.
+    try:
+        busy = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+        busy.bind(("::", 0))
+        busy.listen()
+    except OSError:
+        pytest.skip("IPv6 not available on this host")
+    try:
+        taken = busy.getsockname()[1]
+        assert launcher._port_is_free("127.0.0.1", taken) is False
+    finally:
+        busy.close()
+
+
 # --------------------------------------------------------------------------
 # readiness polling
 # --------------------------------------------------------------------------
