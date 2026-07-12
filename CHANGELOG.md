@@ -8,6 +8,15 @@ All notable changes to this project are documented here. The format is based on
 
 Nothing yet. Open a PR or an issue to shape the next release.
 
+## [0.2.1] - 2026-07-12
+
+### Fixed
+- `finetune-copilot` no longer crashes with `EADDRINUSE` when the frontend port
+  is held by an IPv6 (`::`) listener (e.g. a leftover Next dev server). Port
+  availability is now checked across every interface and address family before
+  binding, so the launcher auto-bumps to the next free port. The dev server also
+  binds the same host it probes (loopback by default).
+
 ## [0.2.0] - 2026-07-11
 
 ### Changed
